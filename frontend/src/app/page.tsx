@@ -28,7 +28,7 @@ export default function HomePage() {
   const router = useRouter();
   const [locations, setLocations] = useState<LocationItem[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>('');
-  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [locationQuery, setLocationQuery] = useState<string>('');
   const [stats, setStats] = useState({
     total_donors: 148,
     available_donors: 112,
@@ -40,17 +40,19 @@ export default function HomePage() {
     api.getLocations().then((data) => {
       setLocations(data);
     }).catch(() => {
-      // Fallback default TN locations
+      // Fallback default locations
       setLocations([
-        { id: 1, district: 'Coimbatore', taluk: 'Coimbatore South', is_active: true },
-        { id: 2, district: 'Coimbatore', taluk: 'Coimbatore North', is_active: true },
-        { id: 3, district: 'Coimbatore', taluk: 'Sulur', is_active: true },
-        { id: 4, district: 'Coimbatore', taluk: 'Pollachi', is_active: true },
-        { id: 5, district: 'Coimbatore', taluk: 'Mettupalayam', is_active: true },
-        { id: 6, district: 'Tiruppur', taluk: 'Tiruppur North', is_active: true },
-        { id: 7, district: 'Tiruppur', taluk: 'Avinashi', is_active: true },
-        { id: 8, district: 'Tiruppur', taluk: 'Palladam', is_active: true },
-        { id: 9, district: 'Tiruppur', taluk: 'Udumalpet', is_active: true },
+        { id: 1, name: 'Coimbatore', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+        { id: 2, name: 'Sulur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+        { id: 3, name: 'Pollachi', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+        { id: 4, name: 'Mettupalayam', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+        { id: 5, name: 'Tiruppur', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+        { id: 6, name: 'Avinashi', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+        { id: 7, name: 'Palladam', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+        { id: 8, name: 'Udumalpet', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+        { id: 9, name: 'Annur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+        { id: 10, name: 'Madukkarai', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+        { id: 11, name: 'Perur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
       ]);
     });
 
@@ -70,14 +72,14 @@ export default function HomePage() {
     e.preventDefault();
     const query = new URLSearchParams();
     if (selectedGroup) query.append('blood_group', selectedGroup);
-    if (selectedLocation) query.append('location_id', selectedLocation);
+    if (locationQuery.trim()) query.append('location', locationQuery.trim());
     router.push(`/find-donor?${query.toString()}`);
   };
 
   return (
     <div className="flex flex-col min-h-full">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-red-50/70 via-white to-slate-50 pt-12 pb-20 md:pt-20 md:pb-28 border-b border-slate-200/60">
+      <section className="relative overflow-hidden bg-gradient-to-b from-red-50/70 via-white to-slate-50 pt-12 pb-16 md:pt-20 md:pb-24 border-b border-slate-200/60">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -156,28 +158,50 @@ export default function HomePage() {
 
               {/* Location and Search Button */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                    2. Choose Preferred Location / District
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                    2. Location / Area of Choice
                   </label>
                   <div className="relative">
                     <MapPin className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <select
-                      value={selectedLocation}
-                      onChange={(e) => setSelectedLocation(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all cursor-pointer"
-                    >
-                      <option value="">All Locations (Coimbatore, Tiruppur & nearby)</option>
+                    <input
+                      type="text"
+                      list="home-locations-list"
+                      placeholder="Enter any location (e.g. Coimbatore, Sulur, Pollachi, Tiruppur...)"
+                      value={locationQuery}
+                      onChange={(e) => setLocationQuery(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400"
+                    />
+                    <datalist id="home-locations-list">
                       {locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.taluk} ({loc.district})
+                        <option key={loc.id} value={loc.name}>
+                          {loc.name} ({loc.district})
                         </option>
                       ))}
-                    </select>
+                    </datalist>
+                  </div>
+
+                  {/* Quick Popular Location Suggestion Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+                    <span className="text-[11px] text-slate-400 font-medium">Quick suggestions:</span>
+                    {locations.slice(0, 5).map((loc) => (
+                      <button
+                        key={loc.id}
+                        type="button"
+                        onClick={() => setLocationQuery(loc.name)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                          locationQuery === loc.name
+                            ? 'bg-red-600 text-white'
+                            : 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200'
+                        }`}
+                      >
+                        {loc.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex items-end">
+                <div className="flex items-start md:items-end">
                   <button
                     type="submit"
                     className="w-full py-3 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-md shadow-red-500/20 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer h-[46px]"
@@ -192,10 +216,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Mandatory Medical Disclaimer Banner */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 z-10">
-        <MedicalDisclaimer variant="card" />
-      </div>
+      {/* Medical & Safety Disclaimer Section (Cleanly Contained) */}
+      <section className="w-full bg-slate-50 py-6 border-b border-slate-200/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <MedicalDisclaimer variant="card" />
+        </div>
+      </section>
 
       {/* Platform Statistics */}
       <section className="py-12 bg-white border-b border-slate-100">
@@ -225,9 +251,9 @@ export default function HomePage() {
               <div className="w-10 h-10 bg-blue-100 rounded-xl text-blue-600 flex items-center justify-center mx-auto mb-3">
                 <MapPin className="w-5 h-5" />
               </div>
-              <div className="text-3xl font-black text-slate-900">11</div>
+              <div className="text-3xl font-black text-slate-900">11+</div>
               <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
-                TN Taluks Covered
+                Regions Covered
               </div>
             </div>
 
@@ -265,9 +291,9 @@ export default function HomePage() {
               <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center font-black text-xl mb-6">
                 1
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Search by Blood Group</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Search by Blood Group & Location</h3>
               <p className="text-sm text-slate-600 leading-relaxed flex-1">
-                Filter donors by required blood group and closest taluk in Tamil Nadu. Privacy is safeguarded: donor contact numbers remain concealed during public search.
+                Filter donors by required blood group and any preferred location in Tamil Nadu. Privacy is strictly safeguarded: donor contact numbers remain concealed during public search.
               </p>
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-500">
                 <Shield className="w-4 h-4 text-emerald-600" />
@@ -286,7 +312,7 @@ export default function HomePage() {
               </p>
               <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs font-semibold text-slate-500">
                 <Activity className="w-4 h-4 text-rose-600" />
-                <span>Real-time SMS & In-app alert</span>
+                <span>Real-time In-app & SMS alert</span>
               </div>
             </div>
 

@@ -44,6 +44,7 @@ async def register_donor(
 async def search_donors(
     blood_group: Optional[BloodGroup] = Query(None, description="Filter by blood group (e.g. O+, A-)"),
     location_id: Optional[int] = Query(None, description="Filter by location ID"),
+    location: Optional[str] = Query(None, description="Filter by location or district name"),
     page: int = Query(1, ge=1, description="Page number"),
     size: int = Query(20, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db)
@@ -52,6 +53,7 @@ async def search_donors(
         db=db,
         blood_group=blood_group,
         location_id=location_id,
+        location_name=location,
         page=page,
         size=size
     )

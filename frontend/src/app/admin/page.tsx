@@ -430,7 +430,7 @@ export default function AdminDashboardPage() {
                 <option value="">All Locations</option>
                 {locations.map((loc) => (
                   <option key={loc.id} value={loc.id}>
-                    {loc.taluk} ({loc.district})
+                    {loc.name} ({loc.district})
                   </option>
                 ))}
               </select>
@@ -468,7 +468,7 @@ export default function AdminDashboardPage() {
                           </span>
                         </td>
                         <td className="p-3 text-slate-600">
-                          {d.location?.taluk}, {d.location?.district}
+                          {d.location?.name}, {d.location?.district}
                         </td>
                         <td className="p-3 text-slate-800 font-mono">
                           {d.user?.mobile_number || '—'}

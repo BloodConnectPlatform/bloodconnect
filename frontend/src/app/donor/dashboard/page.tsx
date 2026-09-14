@@ -229,7 +229,7 @@ export default function DonorDashboardPage() {
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    {profile.location?.taluk}, {profile.location?.district}
+                    {profile.location?.name}, {profile.location?.district}
                   </span>
                   <span>•</span>
                   <span>Registered: {user?.mobile_number}</span>
@@ -542,7 +542,7 @@ export default function DonorDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Location / Taluk</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Primary Location / Area</label>
                 <select
                   value={editLocationId}
                   onChange={(e) => setEditLocationId(Number(e.target.value))}
@@ -550,7 +550,7 @@ export default function DonorDashboardPage() {
                 >
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
-                      {loc.taluk} ({loc.district})
+                      {loc.name} ({loc.district})
                     </option>
                   ))}
                 </select>

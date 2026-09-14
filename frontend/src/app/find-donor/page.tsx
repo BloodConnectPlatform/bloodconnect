@@ -35,10 +35,9 @@ function FindDonorContent() {
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>(
     (searchParams.get('blood_group') as BloodGroup) || ''
   );
-  const [selectedLocation, setSelectedLocation] = useState<string>(
-    searchParams.get('location_id') || ''
+  const [locationQuery, setLocationQuery] = useState<string>(
+    searchParams.get('location') || searchParams.get('taluk') || ''
   );
-  const [searchQuery, setSearchQuery] = useState('');
 
   const [donors, setDonors] = useState<PublicDonor[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -75,8 +74,7 @@ function FindDonorContent() {
     try {
       const res = await api.searchDonors({
         blood_group: selectedGroup || undefined,
-        location_id: selectedLocation ? parseInt(selectedLocation) : undefined,
-        taluk: searchQuery || undefined,
+        location: locationQuery.trim() || undefined,
         page: currentPage,
         page_size: 12,
       });
@@ -92,7 +90,7 @@ function FindDonorContent() {
 
   useEffect(() => {
     fetchDonors();
-  }, [selectedGroup, selectedLocation, currentPage]);
+  }, [selectedGroup, currentPage]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,7 +164,7 @@ function FindDonorContent() {
 
   return (
     <div className="flex-1 bg-slate-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Header */}
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 rounded-lg text-xs font-bold text-red-800">
@@ -177,7 +175,7 @@ function FindDonorContent() {
             Find Blood Donors in Tamil Nadu
           </h1>
           <p className="text-sm text-slate-600">
-            Search voluntary donors by blood type and taluk. Contact details are strictly protected until the donor accepts your request.
+            Search voluntary donors by blood type and any location of your choice. Contact details are strictly protected until the donor accepts your request.
           </p>
         </div>
 
@@ -224,68 +222,103 @@ function FindDonorContent() {
               </div>
             </div>
 
-            {/* Location & Keyword row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Location / Taluk
-                </label>
-                <div className="relative">
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <select
-                    value={selectedLocation}
-                    onChange={(e) => {
-                      setSelectedLocation(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
-                  >
-                    <option value="">All Locations (Tamil Nadu)</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.taluk} ({loc.district})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Search Taluk Keyword
-                </label>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            {/* Flexible Location Search Row */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Location of Your Choice
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="e.g. Sulur, Pollachi, Perur..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    list="search-locations-list"
+                    placeholder="Enter any location (e.g. Sulur, Pollachi, Coimbatore, Tiruppur, Avinashi...)"
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 outline-hidden"
                   />
+                  <datalist id="search-locations-list">
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.name}>
+                        {loc.name} ({loc.district})
+                      </option>
+                    ))}
+                  </datalist>
                 </div>
-              </div>
 
-              <div className="flex items-end">
                 <button
                   type="submit"
-                  className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer h-[42px]"
+                  className="py-2.5 px-6 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer h-[42px]"
                 >
                   <Search className="w-4 h-4" />
-                  Apply Filter
+                  Search Donors
                 </button>
+
+                {locationQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLocationQuery('');
+                      setCurrentPage(1);
+                      api.searchDonors({ blood_group: selectedGroup || undefined, page: 1, page_size: 12 }).then((r) => {
+                        setDonors(r.items);
+                        setTotalCount(r.total);
+                      });
+                    }}
+                    className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer h-[42px]"
+                  >
+                    Clear Location
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Location Pills */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+                <span className="text-[11px] text-slate-400 font-medium">Suggestions:</span>
+                {locations.map((loc) => (
+                  <button
+                    key={loc.id}
+                    type="button"
+                    onClick={() => {
+                      setLocationQuery(loc.name);
+                      setCurrentPage(1);
+                      api.searchDonors({
+                        blood_group: selectedGroup || undefined,
+                        location: loc.name,
+                        page: 1,
+                        page_size: 12,
+                      }).then((r) => {
+                        setDonors(r.items);
+                        setTotalCount(r.total);
+                      });
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                      locationQuery.toLowerCase() === loc.name.toLowerCase()
+                        ? 'bg-red-600 text-white shadow-xs'
+                        : 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-700 border border-slate-200'
+                    }`}
+                  >
+                    {loc.name}
+                  </button>
+                ))}
               </div>
             </div>
           </form>
         </div>
 
-        {/* Disclaimer Notice */}
-        <MedicalDisclaimer variant="compact" />
+        {/* Cleanly Contained Disclaimer Notice */}
+        <div>
+          <MedicalDisclaimer variant="compact" />
+        </div>
 
         {/* Results Header */}
         <div className="flex items-center justify-between">
           <div className="text-sm font-semibold text-slate-700">
             Showing <span className="text-red-600 font-bold">{donors.length}</span> of {totalCount} voluntary donors found
+            {locationQuery && (
+              <span className="text-slate-500 font-normal"> in "{locationQuery}"</span>
+            )}
           </div>
         </div>
 
@@ -302,17 +335,18 @@ function FindDonorContent() {
             </div>
             <h3 className="text-lg font-bold text-slate-800">No Donors Found Matching Your Criteria</h3>
             <p className="text-sm text-slate-500 max-w-md mx-auto">
-              Try broadening your search by choosing "All Blood Groups" or selecting all Tamil Nadu locations.
+              Try choosing "All Blood Groups" or clearing the location filter.
             </p>
             <button
               onClick={() => {
                 setSelectedGroup('');
-                setSelectedLocation('');
-                setSearchQuery('');
+                setLocationQuery('');
+                setCurrentPage(1);
+                fetchDonors();
               }}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
-              Reset Filters
+              Reset All Filters
             </button>
           </div>
         ) : (
@@ -358,7 +392,7 @@ function FindDonorContent() {
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       <span className="font-medium text-slate-800">
-                        {donor.location?.taluk}, {donor.location?.district}
+                        {donor.location?.name}, {donor.location?.district}
                       </span>
                     </div>
 
@@ -438,7 +472,7 @@ function FindDonorContent() {
                 <div>
                   <h3 className="text-lg font-bold">Request Blood from {requestModalDonor.full_name}</h3>
                   <p className="text-xs text-rose-100">
-                    Location: {requestModalDonor.location?.taluk}, {requestModalDonor.location?.district}
+                    Location: {requestModalDonor.location?.name}, {requestModalDonor.location?.district}
                   </p>
                 </div>
               </div>

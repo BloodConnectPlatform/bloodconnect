@@ -1,7 +1,7 @@
 import math
 from typing import List, Optional
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -145,6 +145,7 @@ class DonorService:
         db: AsyncSession,
         blood_group: Optional[BloodGroup] = None,
         location_id: Optional[int] = None,
+        location_name: Optional[str] = None,
         page: int = 1,
         size: int = 20
     ) -> PaginatedResponse[PublicDonorResponse]:
@@ -183,6 +184,14 @@ class DonorService:
         if location_id:
             query = query.where(DonorProfile.location_id == location_id)
             count_query = count_query.where(DonorProfile.location_id == location_id)
+        elif location_name and location_name.strip():
+            loc_term = f"%{location_name.strip()}%"
+            query = query.join(DonorProfile.location).where(
+                or_(Location.name.ilike(loc_term), Location.district.ilike(loc_term))
+            )
+            count_query = count_query.join(DonorProfile.location).where(
+                or_(Location.name.ilike(loc_term), Location.district.ilike(loc_term))
+            )
 
         # Count total matches
         total_result = await db.execute(count_query)

@@ -137,7 +137,7 @@ export default function DonorRegistrationPage() {
     }
 
     if (!locationId) {
-      setError('Please select your location / taluk.');
+      setError('Please select your location / area.');
       return;
     }
 
@@ -420,7 +420,7 @@ export default function DonorRegistrationPage() {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Location / Taluk *
+                      Primary Location / Area *
                     </label>
                     <select
                       value={locationId}
@@ -429,7 +429,7 @@ export default function DonorRegistrationPage() {
                     >
                       {locations.map((loc) => (
                         <option key={loc.id} value={loc.id}>
-                          {loc.taluk} ({loc.district})
+                          {loc.name} ({loc.district})
                         </option>
                       ))}
                     </select>

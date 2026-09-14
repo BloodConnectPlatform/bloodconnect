@@ -9,10 +9,10 @@ export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 
 export interface LocationItem {
   id: number;
+  name: string;
   district: string;
-  taluk: string;
-  pincode?: string;
-  is_active: boolean;
+  state?: string;
+  is_active?: boolean;
 }
 
 export interface User {

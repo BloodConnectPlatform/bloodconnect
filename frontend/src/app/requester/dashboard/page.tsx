@@ -232,7 +232,7 @@ export default function RequesterDashboardPage() {
                         </div>
                         <div className="text-xs text-slate-500 mt-0.5">
                           Blood Group: <strong>{req.donor?.blood_group}</strong> • Location:{' '}
-                          {req.donor?.location?.taluk}, {req.donor?.location?.district}
+                          {req.donor?.location?.name}, {req.donor?.location?.district}
                         </div>
                       </div>
 
