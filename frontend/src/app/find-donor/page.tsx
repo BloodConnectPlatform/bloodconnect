@@ -23,15 +23,29 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer';
 
-const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const URGENCY_LEVELS: UrgencyLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+
+const DEFAULT_LOCATIONS: LocationItem[] = [
+  { id: 1, name: 'Coimbatore', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+  { id: 2, name: 'Sulur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+  { id: 3, name: 'Tiruppur', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+  { id: 4, name: 'Pollachi', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+  { id: 5, name: 'Mettupalayam', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+  { id: 6, name: 'Avinashi', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+  { id: 7, name: 'Palladam', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+  { id: 8, name: 'Udumalpet', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
+  { id: 9, name: 'Annur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+  { id: 10, name: 'Madukkarai', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+  { id: 11, name: 'Perur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
+];
 
 function FindDonorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isAuthenticated, openLoginModal } = useAuth();
 
-  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [locations, setLocations] = useState<LocationItem[]>(DEFAULT_LOCATIONS);
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>(
     (searchParams.get('blood_group') as BloodGroup) || ''
   );
@@ -57,7 +71,7 @@ function FindDonorContent() {
 
   // Report Modal State
   const [reportModalDonor, setReportModalDonor] = useState<PublicDonor | null>(null);
-  const [reportReason, setReportReason] = useState<ReportReason>('UNAVAILABLE');
+  const [reportReason, setReportReason] = useState<ReportReason>('INCORRECT_INFORMATION');
   const [reportDescription, setReportDescription] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
@@ -65,7 +79,9 @@ function FindDonorContent() {
 
   // Fetch Locations
   useEffect(() => {
-    api.getLocations().then(setLocations).catch(() => {});
+    api.getLocations().then((data) => {
+      if (data && data.length > 0) setLocations(data);
+    }).catch(() => {});
   }, []);
 
   // Fetch Donors
@@ -241,7 +257,7 @@ function FindDonorContent() {
                     <option value="">Select Location / Area</option>
                     {locations.map((loc) => (
                       <option key={loc.id} value={loc.name}>
-                        {loc.name} ({loc.district})
+                        {loc.name}
                       </option>
                     ))}
                   </select>
@@ -392,7 +408,7 @@ function FindDonorContent() {
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
                       <span className="font-medium text-slate-800">
-                        {donor.location?.name}, {donor.location?.district}
+                        {donor.location?.name}
                       </span>
                     </div>
 
@@ -472,7 +488,7 @@ function FindDonorContent() {
                 <div>
                   <h3 className="text-lg font-bold">Request Blood from {requestModalDonor.full_name}</h3>
                   <p className="text-xs text-rose-100">
-                    Location: {requestModalDonor.location?.name}, {requestModalDonor.location?.district}
+                    Location: {requestModalDonor.location?.name}
                   </p>
                 </div>
               </div>
@@ -587,6 +603,25 @@ function FindDonorContent() {
                     </div>
                   </div>
 
+                  {/* Blood Connect Standard Request Preview (From PDF Spec Page 10) */}
+                  <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
+                    <div className="font-bold text-slate-800 text-[11px] uppercase tracking-wider text-red-600">
+                      Blood Connect Request Template
+                    </div>
+                    <div className="text-slate-600 font-mono text-[11px] leading-relaxed bg-white p-2.5 rounded-xl border border-slate-100">
+                      <p>Blood Connect Request</p>
+                      <p>Hello {requestModalDonor.full_name},</p>
+                      <p>
+                        {patientName ? patientName : '[Requester/Patient]'} is currently in need of{' '}
+                        <strong>{requestModalDonor.blood_group}</strong> blood in{' '}
+                        {requestModalDonor.location?.name || '[Location]'}.
+                      </p>
+                      <p>Would you be willing and available to donate blood now?</p>
+                      <p>Please contact the requester if you are available to help.</p>
+                      <p>Thank you.</p>
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Optional Medical Message / Notes
@@ -634,7 +669,7 @@ function FindDonorContent() {
         </div>
       )}
 
-      {/* ================= REPORT MODAL ================= */}
+      {/* ================= REPORT MODAL (PDF Spec Page 13-14) ================= */}
       {reportModalDonor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
@@ -657,7 +692,7 @@ function FindDonorContent() {
                   <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
                   <h4 className="text-sm font-bold text-slate-800">Report Submitted</h4>
                   <p className="text-xs text-slate-600">
-                    Our admin team will review this report. Thank you for keeping Blood Connect safe and authentic.
+                    Our administrator will review this report. Thank you for helping keep Blood Connect authentic and safe.
                   </p>
                   <button
                     onClick={() => setReportModalDonor(null)}
@@ -683,11 +718,12 @@ function FindDonorContent() {
                       onChange={(e) => setReportReason(e.target.value as ReportReason)}
                       className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800"
                     >
-                      <option value="UNAVAILABLE">Donor is permanently unavailable</option>
-                      <option value="INCORRECT_CONTACT">Invalid or unreachable contact</option>
-                      <option value="INELIGIBLE_DONOR">Medical ineligibility</option>
-                      <option value="SUSPICIOUS_BEHAVIOR">Commercial / Suspicious behavior</option>
-                      <option value="OTHER">Other issue</option>
+                      <option value="INCORRECT_INFORMATION">Incorrect information</option>
+                      <option value="FAKE_PROFILE">Fake profile</option>
+                      <option value="WRONG_BLOOD_GROUP">Wrong blood group</option>
+                      <option value="SPAM">Spam</option>
+                      <option value="MISUSE">Misuse</option>
+                      <option value="OTHER">Other</option>
                     </select>
                   </div>
 

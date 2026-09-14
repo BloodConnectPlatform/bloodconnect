@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -54,22 +55,28 @@ export const Navbar: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+          <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
             <Link
-              href="/find-donor"
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                pathname === '/find-donor'
+              href="/"
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                pathname === '/'
                   ? 'text-red-600 bg-red-50/80'
                   : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
               }`}
             >
-              <Search className="w-4 h-4" />
-              Find Donors
+              Home
+            </Link>
+
+            <Link
+              href="/#about-initiative"
+              className="px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:text-red-600 hover:bg-slate-50 transition-colors"
+            >
+              About Our Initiative
             </Link>
 
             <Link
               href="/register"
-              className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 pathname === '/register'
                   ? 'text-red-600 bg-red-50/80'
                   : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
@@ -80,16 +87,29 @@ export const Navbar: React.FC = () => {
             </Link>
 
             <Link
-              href="/#how-it-works"
-              className="px-3.5 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:text-red-600 hover:bg-slate-50 transition-colors"
+              href="/find-donor"
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                pathname === '/find-donor'
+                  ? 'text-red-600 bg-red-50/80'
+                  : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
+              }`}
             >
-              How It Works
+              <Search className="w-4 h-4" />
+              Find a Donor
+            </Link>
+
+            <Link
+              href="/#important-note"
+              className="px-3 py-2 rounded-lg text-sm font-semibold text-amber-700 hover:text-amber-800 hover:bg-amber-50/80 transition-colors flex items-center gap-1"
+            >
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+              Important Note
             </Link>
 
             {isAuthenticated && user?.role === 'ADMIN' && (
               <Link
                 href="/admin"
-                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   pathname.startsWith('/admin')
                     ? 'text-purple-700 bg-purple-50'
                     : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50/60'
@@ -103,7 +123,7 @@ export const Navbar: React.FC = () => {
             {isAuthenticated && user?.role === 'DONOR' && (
               <Link
                 href="/donor/dashboard"
-                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   pathname.startsWith('/donor')
                     ? 'text-red-600 bg-red-50'
                     : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
@@ -120,7 +140,7 @@ export const Navbar: React.FC = () => {
             {isAuthenticated && user?.role === 'REQUESTER' && (
               <Link
                 href="/requester/dashboard"
-                className={`px-3.5 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                   pathname.startsWith('/requester')
                     ? 'text-red-600 bg-red-50'
                     : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
@@ -188,12 +208,18 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-2">
           <Link
-            href="/find-donor"
+            href="/"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
           >
-            <Search className="w-5 h-5 text-red-600" />
-            Find Donors
+            Home
+          </Link>
+          <Link
+            href="/#about-initiative"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            About Our Initiative
           </Link>
           <Link
             href="/register"
@@ -204,11 +230,20 @@ export const Navbar: React.FC = () => {
             Register as Donor
           </Link>
           <Link
-            href="/#how-it-works"
+            href="/find-donor"
             onClick={() => setMobileMenuOpen(false)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
           >
-            How It Works
+            <Search className="w-5 h-5 text-red-600" />
+            Find a Donor
+          </Link>
+          <Link
+            href="/#important-note"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-amber-800 bg-amber-50/60 hover:bg-amber-50"
+          >
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+            Important Note
           </Link>
 
           {isAuthenticated ? (

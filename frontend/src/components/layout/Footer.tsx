@@ -56,35 +56,35 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 3: Quick Navigation */}
+          {/* Col 3: Quick Navigation (Section 19: Links: About Us, How It Works, Important Note) */}
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Quick Links
+              Links
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link href="/find-donor" className="hover:text-red-400 transition-colors">
-                  Find Blood Donors
-                </Link>
-              </li>
-              <li>
-                <Link href="/register" className="hover:text-red-400 transition-colors">
-                  Become a Voluntary Donor
+                <Link href="/#about-initiative" className="hover:text-red-400 transition-colors">
+                  About Us
                 </Link>
               </li>
               <li>
                 <Link href="/#how-it-works" className="hover:text-red-400 transition-colors">
-                  How the Platform Works
+                  How It Works
                 </Link>
               </li>
               <li>
-                <Link href="/#eligibility" className="hover:text-red-400 transition-colors">
-                  Donor Eligibility Guidelines
+                <Link href="/#important-note" className="hover:text-red-400 transition-colors text-amber-400">
+                  Important Note
                 </Link>
               </li>
               <li>
-                <Link href="/admin" className="text-slate-500 hover:text-slate-400 transition-colors">
-                  Admin Portal
+                <Link href="/find-donor" className="hover:text-red-400 transition-colors">
+                  Find a Donor
+                </Link>
+              </li>
+              <li>
+                <Link href="/register" className="hover:text-red-400 transition-colors">
+                  Register as Donor
                 </Link>
               </li>
             </ul>

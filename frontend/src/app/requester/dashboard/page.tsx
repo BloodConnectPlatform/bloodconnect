@@ -171,7 +171,11 @@ export default function RequesterDashboardPage() {
                 >
                   {/* Status Banner */}
                   <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="px-3 py-1 rounded-xl text-xs font-black uppercase bg-red-100 text-red-800">
+                        {req.donor?.blood_group || ''} Blood Request
+                      </span>
+
                       {req.status === 'ACCEPTED' && (
                         <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -181,18 +185,18 @@ export default function RequesterDashboardPage() {
                       {req.status === 'PENDING' && (
                         <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-amber-100 text-amber-800 flex items-center gap-1.5">
                           <Clock className="w-4 h-4 text-amber-600 animate-spin" />
-                          Awaiting Donor Response
+                          Waiting for Response
                         </span>
                       )}
                       {req.status === 'REJECTED' && (
                         <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-slate-100 text-slate-600 flex items-center gap-1.5">
                           <XCircle className="w-4 h-4 text-slate-400" />
-                          Donor Unavailable / Declined
+                          Not Available / Declined
                         </span>
                       )}
 
                       <span className="text-xs text-slate-400 font-medium">
-                        Sent {new Date(req.created_at).toLocaleString()}
+                        Location: {req.donor?.location?.name || 'Tamil Nadu'}
                       </span>
                     </div>
 
@@ -232,7 +236,7 @@ export default function RequesterDashboardPage() {
                         </div>
                         <div className="text-xs text-slate-500 mt-0.5">
                           Blood Group: <strong>{req.donor?.blood_group}</strong> • Location:{' '}
-                          {req.donor?.location?.name}, {req.donor?.location?.district}
+                          {req.donor?.location?.name}
                         </div>
                       </div>
 

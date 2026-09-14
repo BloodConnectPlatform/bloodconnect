@@ -99,11 +99,11 @@ export default function LoginPage() {
             {step === 'PHONE' ? <Phone className="w-6 h-6 text-white" /> : <KeyRound className="w-6 h-6 text-white" />}
           </div>
           <h2 className="text-2xl font-black">
-            {step === 'PHONE' ? 'Sign In with Mobile' : 'Verify Mobile OTP'}
+            {step === 'PHONE' ? 'Simple Login' : 'Verify Mobile OTP'}
           </h2>
           <p className="text-xs text-rose-100 mt-1">
             {step === 'PHONE'
-              ? 'Passwordless authentication via SMS passcode.'
+              ? 'Enter your name and mobile number to access Blood Connect.'
               : `Enter the 6-digit code sent to ${mobileNumber}`}
           </p>
         </div>
@@ -120,7 +120,18 @@ export default function LoginPage() {
             <form onSubmit={handleSendOtp} className="space-y-5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Mobile Number
+                  Your Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ramesh Kumar"
+                  className="w-full px-4 py-3 text-sm border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Mobile Number *
                 </label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
@@ -151,7 +162,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    <span>Send One-Time Passcode</span>
+                    <span>Login</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

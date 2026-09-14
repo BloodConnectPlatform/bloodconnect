@@ -229,7 +229,7 @@ export default function DonorDashboardPage() {
                 <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 font-medium">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    {profile.location?.name}, {profile.location?.district}
+                    {profile.location?.name}
                   </span>
                   <span>•</span>
                   <span>Registered: {user?.mobile_number}</span>
@@ -372,7 +372,7 @@ export default function DonorDashboardPage() {
                         disabled={actionLoadingId === req.id}
                         className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
                       >
-                        Decline
+                        [ NOT AVAILABLE ]
                       </button>
 
                       <button
@@ -385,7 +385,7 @@ export default function DonorDashboardPage() {
                         ) : (
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         )}
-                        Accept & Share Phone
+                        [ ACCEPT / I CAN HELP ]
                       </button>
                     </div>
                   </div>
@@ -428,11 +428,16 @@ export default function DonorDashboardPage() {
                         Hospital: {req.hospital_name}
                       </div>
 
-                      {/* Unlocked Requester Phone */}
+                      {/* Unlocked Requester Phone (From PDF Spec Page 11) */}
                       {req.requester_contact && (
-                        <div className="mt-2 inline-flex items-center gap-3 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900">
-                          <Phone className="w-4 h-4 text-emerald-600" />
-                          <span>Requester Phone: {req.requester_contact}</span>
+                        <div className="mt-2 space-y-1.5 p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950">
+                          <div className="flex items-center gap-2 font-bold text-emerald-900">
+                            <Phone className="w-4 h-4 text-emerald-600" />
+                            <span>Contact Number: {req.requester_contact}</span>
+                          </div>
+                          <p className="text-[11px] text-emerald-800 leading-relaxed font-normal">
+                            Please contact each other and verify all necessary details through the appropriate hospital/medical authorities.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -550,7 +555,7 @@ export default function DonorDashboardPage() {
                 >
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>
-                      {loc.name} ({loc.district})
+                      {loc.name}
                     </option>
                   ))}
                 </select>

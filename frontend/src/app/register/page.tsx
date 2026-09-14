@@ -28,8 +28,8 @@ export default function DonorRegistrationPage() {
   const router = useRouter();
   const { refreshUser } = useAuth();
 
-  // Wizard Steps: 1: Phone, 2: OTP, 3: Profile Form
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  // Wizard Steps: 1: Phone, 2: OTP, 3: Profile Form, 4: Success
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form State
   const [mobileNumber, setMobileNumber] = useState('');
@@ -162,7 +162,7 @@ export default function DonorRegistrationPage() {
       });
 
       await refreshUser();
-      router.push('/donor/dashboard');
+      setStep(4);
     } catch (err: any) {
       setError(err.message || 'Failed to complete registration.');
     } finally {
@@ -429,7 +429,7 @@ export default function DonorRegistrationPage() {
                     >
                       {locations.map((loc) => (
                         <option key={loc.id} value={loc.id}>
-                          {loc.name} ({loc.district})
+                          {loc.name}
                         </option>
                       ))}
                     </select>
@@ -500,6 +500,38 @@ export default function DonorRegistrationPage() {
                   )}
                 </button>
               </form>
+            )}
+
+            {/* STEP 4: REGISTRATION SUCCESSFUL (From PDF Spec Page 6) */}
+            {step === 4 && (
+              <div className="py-8 text-center space-y-6 animate-in fade-in">
+                <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-md shadow-emerald-500/10">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                    Registration Successful!
+                  </h2>
+                  <p className="text-base text-red-600 font-semibold italic">
+                    "Your willingness to help today could be someones hope tomorrow."
+                  </p>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
+                  Your donor details have been securely recorded in the Blood Connect database. You will only be contacted when someone in your region urgently requires your blood group.
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => router.push('/donor/dashboard')}
+                    className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-sm rounded-2xl shadow-lg shadow-red-600/25 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Proceed to Donor Hub</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </div>

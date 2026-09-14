@@ -2,9 +2,15 @@ export type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-'
 export type UserRole = 'DONOR' | 'REQUESTER' | 'ADMIN';
 export type RequestStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED' | 'FULFILLED';
 export type UrgencyLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-export type ReportReason = 'INCORRECT_CONTACT' | 'UNAVAILABLE' | 'INELIGIBLE_DONOR' | 'SUSPICIOUS_BEHAVIOR' | 'OTHER';
-export type ReportStatus = 'PENDING' | 'INVESTIGATING' | 'RESOLVED' | 'DISMISSED';
-export type NotificationType = 'REQUEST_RECEIVED' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED' | 'SYSTEM';
+export type ReportReason =
+  | 'INCORRECT_INFORMATION'
+  | 'FAKE_PROFILE'
+  | 'WRONG_BLOOD_GROUP'
+  | 'SPAM'
+  | 'MISUSE'
+  | 'OTHER';
+export type ReportStatus = 'OPEN' | 'REVIEWING' | 'RESOLVED' | 'DISMISSED';
+export type NotificationType = 'REQUEST_RECEIVED' | 'REQUEST_ACCEPTED' | 'REQUEST_REJECTED' | 'REPORT' | 'SYSTEM';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 
 export interface LocationItem {
@@ -45,6 +51,7 @@ export interface PublicDonor {
   full_name: string;
   blood_group: BloodGroup;
   gender: Gender;
+  date_of_birth?: string;
   location: LocationItem;
   is_available: boolean;
   last_donated_at?: string;
@@ -106,6 +113,8 @@ export interface AdminStats {
   accepted_requests: number;
   total_reports: number;
   pending_reports: number;
+  donors_by_blood_group?: Record<string, number>;
+  donors_by_location?: Record<string, number>;
 }
 
 export interface AuthTokens {
