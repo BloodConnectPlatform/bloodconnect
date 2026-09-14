@@ -50,12 +50,13 @@ class DonorRegisterRequest(BaseModel):
 
 
 class PublicDonorResponse(BaseModel):
-    """Safe public donor projection: strictly conceals mobile, DOB, and private data."""
+    """Safe public donor projection: strictly conceals mobile, exact DOB, and private data."""
     id: uuid.UUID
     name: str
     blood_group: BloodGroup
     location: LocationResponse
     is_available: bool
+    age: Optional[int] = None
 
     model_config = {"from_attributes": True}
 

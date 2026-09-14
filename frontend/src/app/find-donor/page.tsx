@@ -482,10 +482,10 @@ function FindDonorContent() {
                       </div>
                       <div>
                         <h3 className="text-base font-bold text-slate-900 group-hover:text-red-600 transition-colors">
-                          {donor.full_name}
+                          {donor.full_name || donor.name}
                         </h3>
-                        <span className="text-xs text-slate-500 capitalize">
-                          {donor.gender?.toLowerCase()} Donor
+                        <span className="text-xs font-semibold text-slate-500">
+                          {donor.age ? `${donor.age} Years Old` : 'Eligible Voluntary Donor'}
                         </span>
                       </div>
                     </div>
@@ -498,39 +498,34 @@ function FindDonorContent() {
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
-                          Cooldown
+                          Unavailable
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Donor Details */}
-                  <div className="space-y-2.5 py-3 border-y border-slate-100 text-xs text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span className="font-medium text-slate-800">
-                        {donor.location?.name}
+                  {/* Donor Details: ONLY Name, Age, Blood Group, Location */}
+                  <div className="space-y-2 py-3 border-y border-slate-100 text-xs text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 font-medium">Age:</span>
+                      <span className="font-bold text-slate-800">
+                        {donor.age ? `${donor.age} Years` : '18+ Years'}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                      <span>
-                        Last Donated:{' '}
-                        <strong className="text-slate-700">
-                          {donor.last_donated_at
-                            ? new Date(donor.last_donated_at).toLocaleDateString()
-                            : 'First Time Donor'}
-                        </strong>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 font-medium">Blood Group:</span>
+                      <span className="font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
+                        {donor.blood_group}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Heart className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                      <span>
-                        Total Donations:{' '}
-                        <strong className="text-slate-700">{donor.total_donations} times</strong>
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 font-medium">Location:</span>
+                      <div className="flex items-center gap-1 font-bold text-slate-800">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <span>{donor.location?.name}</span>
+                      </div>
                     </div>
                   </div>
 

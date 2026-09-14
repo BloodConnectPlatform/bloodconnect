@@ -34,32 +34,36 @@ export interface User {
 }
 
 export interface DonorProfile {
-  id: number;
-  user_id: number;
-  full_name: string;
+  id: string | number;
+  user_id: string | number;
+  full_name?: string;
+  name?: string;
   blood_group: BloodGroup;
-  gender: Gender;
+  gender?: Gender;
   date_of_birth: string;
+  age?: number;
   location_id: number;
   is_available: boolean;
   last_donated_at?: string;
-  total_donations: number;
+  total_donations?: number;
   created_at: string;
   location: LocationItem;
   user?: User;
 }
 
 export interface PublicDonor {
-  id: number;
-  full_name: string;
+  id: string | number;
+  name?: string;
+  full_name?: string;
   blood_group: BloodGroup;
-  gender: Gender;
+  gender?: Gender;
+  age?: number;
   date_of_birth?: string;
   location: LocationItem;
   is_available: boolean;
   last_donated_at?: string;
-  total_donations: number;
-  created_at: string;
+  total_donations?: number;
+  created_at?: string;
 }
 
 export interface BloodRequest {

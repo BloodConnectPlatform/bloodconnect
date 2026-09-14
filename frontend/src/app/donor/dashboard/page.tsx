@@ -44,7 +44,6 @@ export default function DonorDashboardPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editLocationId, setEditLocationId] = useState<number | ''>('');
-  const [editLastDonated, setEditLastDonated] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
@@ -64,13 +63,8 @@ export default function DonorDashboardPage() {
       setAllRequests(data.recent_requests);
 
       if (data.profile) {
-        setEditName(data.profile.full_name);
+        setEditName(data.profile.full_name || data.profile.name || '');
         setEditLocationId(data.profile.location_id);
-        setEditLastDonated(
-          data.profile.last_donated_at
-            ? new Date(data.profile.last_donated_at).toISOString().split('T')[0]
-            : ''
-        );
       }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to load dashboard data.' });
@@ -146,7 +140,6 @@ export default function DonorDashboardPage() {
       const updated = await api.updateDonorProfile({
         full_name: editName,
         location_id: editLocationId ? Number(editLocationId) : undefined,
-        last_donated_at: editLastDonated ? new Date(editLastDonated).toISOString() : null,
       });
       setProfile(updated);
       setGlobalDonorProfile(updated);
@@ -233,8 +226,6 @@ export default function DonorDashboardPage() {
                   </span>
                   <span>•</span>
                   <span>Registered: {user?.mobile_number}</span>
-                  <span>•</span>
-                  <span>Total Donations: {profile.total_donations}</span>
                 </div>
               </div>
             </div>
@@ -559,16 +550,6 @@ export default function DonorDashboardPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Last Donated Date</label>
-                <input
-                  type="date"
-                  value={editLastDonated}
-                  onChange={(e) => setEditLastDonated(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl"
-                />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2">

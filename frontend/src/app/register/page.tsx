@@ -41,7 +41,6 @@ export default function DonorRegistrationPage() {
   const [gender, setGender] = useState<Gender>('MALE');
   const [dateOfBirth, setDateOfBirth] = useState('2000-01-01');
   const [locationId, setLocationId] = useState<number | ''>('');
-  const [lastDonatedAt, setLastDonatedAt] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
   const [agreeDisclaimer, setAgreeDisclaimer] = useState(false);
 
@@ -78,9 +77,10 @@ export default function DonorRegistrationPage() {
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     const formatted = normalizePhone(mobileNumber);
     if (!/^\+91[6-9]\d{9}$/.test(formatted)) {
-      setError('Please enter a valid 10-digit Indian mobile number.');
+      setError('Please enter a valid 10-digit Indian mobile number');
       return;
     }
 
@@ -90,7 +90,7 @@ export default function DonorRegistrationPage() {
       setStep(2);
       setCooldown(res.cooldown_seconds || 60);
     } catch (err: any) {
-      setError(err.message || 'Failed to send OTP. Please try again.');
+      setError(err.message || 'Failed to send OTP.');
     } finally {
       setIsLoading(false);
     }
@@ -100,16 +100,19 @@ export default function DonorRegistrationPage() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     if (otpCode.trim().length !== 6) {
-      setError('Please enter the 6-digit OTP code.');
+      setError('Please enter a valid 6-digit OTP');
       return;
     }
 
     setIsLoading(true);
     try {
       const formatted = normalizePhone(mobileNumber);
-      const res = await api.verifyOtp(formatted, otpCode.trim(), 'DONOR_REGISTRATION');
-      setVerificationToken(res.verification_token);
+      const res = await api.verifyOtp(formatted, otpCode.trim());
+      if (res.verification_token) {
+        setVerificationToken(res.verification_token);
+      }
       setStep(3);
     } catch (err: any) {
       setError(err.message || 'Invalid or expired OTP.');
@@ -118,12 +121,17 @@ export default function DonorRegistrationPage() {
     }
   };
 
-  // Step 3: Complete Profile & Register
-  const handleRegisterProfile = async (e: React.FormEvent) => {
+  // Step 3: Complete Profile
+  const handleCompleteProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // Age validation (must be >= 18)
+    if (!fullName.trim()) {
+      setError('Please enter your full name.');
+      return;
+    }
+
+    // Validate Age >= 18
     const dob = new Date(dateOfBirth);
     const today = new Date();
     let age = today.getFullYear() - dob.getFullYear();
@@ -131,8 +139,14 @@ export default function DonorRegistrationPage() {
     if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
       age--;
     }
+
     if (age < 18) {
-      setError('You must be at least 18 years old to register as a voluntary blood donor.');
+      setError('You must be at least 18 years of age to register as a voluntary blood donor.');
+      return;
+    }
+
+    if (age > 65) {
+      setError('Blood donors must be between 18 and 65 years of age.');
       return;
     }
 
@@ -158,7 +172,6 @@ export default function DonorRegistrationPage() {
         date_of_birth: dateOfBirth,
         location_id: Number(locationId),
         is_available: isAvailable,
-        last_donated_at: lastDonatedAt ? new Date(lastDonatedAt).toISOString() : undefined,
       });
 
       await refreshUser();
@@ -352,7 +365,7 @@ export default function DonorRegistrationPage() {
 
             {/* STEP 3: DONOR PROFILE DETAILS */}
             {step === 3 && (
-              <form onSubmit={handleRegisterProfile} className="space-y-6">
+              <form onSubmit={handleCompleteProfile} className="space-y-6">
                 {/* Full Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -434,19 +447,6 @@ export default function DonorRegistrationPage() {
                       ))}
                     </select>
                   </div>
-                </div>
-
-                {/* Optional Last Donated Date */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Last Blood Donation Date (Leave empty if first time)
-                  </label>
-                  <input
-                    type="date"
-                    value={lastDonatedAt}
-                    onChange={(e) => setLastDonatedAt(e.target.value)}
-                    className="w-full px-4 py-3 text-sm font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden"
-                  />
                 </div>
 
                 {/* Availability Switch */}

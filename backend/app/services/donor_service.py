@@ -1,3 +1,4 @@
+from datetime import date, datetime
 import math
 from typing import List, Optional
 from fastapi import HTTPException, status
@@ -203,13 +204,20 @@ class DonorService:
         result = await db.execute(query)
         donors = result.scalars().all()
 
+        def _calculate_age(dob: Optional[date]) -> Optional[int]:
+            if not dob:
+                return None
+            today = date.today()
+            return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
         items = [
             PublicDonorResponse(
                 id=d.id,
                 name=d.user.name,
                 blood_group=d.blood_group,
                 location=LocationResponse.model_validate(d.location),
-                is_available=d.is_available
+                is_available=d.is_available,
+                age=_calculate_age(d.date_of_birth)
             )
             for d in donors
         ]
