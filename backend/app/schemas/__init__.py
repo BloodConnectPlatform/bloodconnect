@@ -11,6 +11,16 @@ from app.schemas.auth import (
     LogoutResponse,
     UserResponse,
 )
+from app.schemas.donor import (
+    LocationResponse,
+    DonorRegisterRequest,
+    DonorProfileResponse,
+    DonorProfileUpdateRequest,
+    DonorAvailabilityUpdateRequest,
+    DonorRequestSummary,
+    DonorDashboardStats,
+    DonorDashboardResponse,
+)
 
 __all__ = [
     "HealthResponse",
@@ -25,4 +35,12 @@ __all__ = [
     "RefreshTokenRequest",
     "LogoutResponse",
     "UserResponse",
+    "LocationResponse",
+    "DonorRegisterRequest",
+    "DonorProfileResponse",
+    "DonorProfileUpdateRequest",
+    "DonorAvailabilityUpdateRequest",
+    "DonorRequestSummary",
+    "DonorDashboardStats",
+    "DonorDashboardResponse",
 ]
