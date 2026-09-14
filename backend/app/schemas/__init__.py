@@ -32,6 +32,18 @@ from app.schemas.notification import (
     NotificationResponse,
     NotificationListResponse,
 )
+from app.schemas.report import (
+    CreateReportRequest,
+    ReportResponse,
+)
+from app.schemas.admin import (
+    AdminDonorResponse,
+    AdminUpdateReportRequest,
+    AdminAuditLogResponse,
+    AdminStatisticsResponse,
+    RequestStats,
+    ReportStats,
+)
 
 __all__ = [
     "HealthResponse",
@@ -61,4 +73,12 @@ __all__ = [
     "ReceivedRequestSummary",
     "NotificationResponse",
     "NotificationListResponse",
+    "CreateReportRequest",
+    "ReportResponse",
+    "AdminDonorResponse",
+    "AdminUpdateReportRequest",
+    "AdminAuditLogResponse",
+    "AdminStatisticsResponse",
+    "RequestStats",
+    "ReportStats",
 ]
