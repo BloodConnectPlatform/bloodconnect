@@ -1,16 +1,20 @@
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_donor
 from app.database.session import get_db
+from app.models.enums import BloodGroup
 from app.models.user import User
 from app.schemas.auth import TokenResponse
+from app.schemas.common import PaginatedResponse
 from app.schemas.donor import (
     DonorAvailabilityUpdateRequest,
     DonorDashboardResponse,
     DonorProfileResponse,
     DonorProfileUpdateRequest,
     DonorRegisterRequest,
+    PublicDonorResponse,
 )
 from app.services.donor_service import donor_service
 
@@ -29,6 +33,28 @@ async def register_donor(
     db: AsyncSession = Depends(get_db)
 ):
     return await donor_service.register_donor(db, request)
+
+
+@router.get(
+    "/search",
+    response_model=PaginatedResponse[PublicDonorResponse],
+    summary="Search verified, available blood donors",
+    description="Search active and verified blood donors filtered by blood group and location. Strictly returns safe public donor data (no contact numbers)."
+)
+async def search_donors(
+    blood_group: Optional[BloodGroup] = Query(None, description="Filter by blood group (e.g. O+, A-)"),
+    location_id: Optional[int] = Query(None, description="Filter by location ID"),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Items per page"),
+    db: AsyncSession = Depends(get_db)
+):
+    return await donor_service.search_donors(
+        db=db,
+        blood_group=blood_group,
+        location_id=location_id,
+        page=page,
+        size=size
+    )
 
 
 @router.get(

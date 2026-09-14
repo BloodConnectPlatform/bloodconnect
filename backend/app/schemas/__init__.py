@@ -14,6 +14,7 @@ from app.schemas.auth import (
 from app.schemas.donor import (
     LocationResponse,
     DonorRegisterRequest,
+    PublicDonorResponse,
     DonorProfileResponse,
     DonorProfileUpdateRequest,
     DonorAvailabilityUpdateRequest,
@@ -37,6 +38,7 @@ __all__ = [
     "UserResponse",
     "LocationResponse",
     "DonorRegisterRequest",
+    "PublicDonorResponse",
     "DonorProfileResponse",
     "DonorProfileUpdateRequest",
     "DonorAvailabilityUpdateRequest",

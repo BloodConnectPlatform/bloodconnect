@@ -1,3 +1,4 @@
+import math
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
@@ -10,10 +11,11 @@ from app.core.security import (
 )
 from app.models.blood_request import BloodRequest
 from app.models.donor import DonorProfile
-from app.models.enums import RequestStatus, UserRole
+from app.models.enums import BloodGroup, RequestStatus, UserRole
 from app.models.location import Location
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserResponse
+from app.schemas.common import PaginatedResponse
 from app.schemas.donor import (
     DonorDashboardResponse,
     DonorDashboardStats,
@@ -22,11 +24,19 @@ from app.schemas.donor import (
     DonorRegisterRequest,
     DonorRequestSummary,
     LocationResponse,
+    PublicDonorResponse,
 )
 from app.services.otp_service import otp_service
 
 
 class DonorService:
+    async def list_locations(self, db: AsyncSession) -> List[LocationResponse]:
+        """Retrieve all active predefined donation locations."""
+        stmt = select(Location).where(Location.is_active.is_(True)).order_by(Location.name.asc())
+        result = await db.execute(stmt)
+        locations = result.scalars().all()
+        return [LocationResponse.model_validate(loc) for loc in locations]
+
     async def register_donor(
         self, db: AsyncSession, data: DonorRegisterRequest
     ) -> TokenResponse:
@@ -127,6 +137,79 @@ class DonorService:
             refresh_token=refresh_token,
             token_type="bearer",
             user=user_response
+        )
+
+    async def search_donors(
+        self,
+        db: AsyncSession,
+        blood_group: Optional[BloodGroup] = None,
+        location_id: Optional[int] = None,
+        page: int = 1,
+        size: int = 20
+    ) -> PaginatedResponse[PublicDonorResponse]:
+        """Search eligible active, OTP-verified, and available donors with safe public response projection."""
+        page = max(1, page)
+        size = max(1, min(size, 100))
+        offset = (page - 1) * size
+
+        # Query builder for eligible donors
+        query = (
+            select(DonorProfile)
+            .join(DonorProfile.user)
+            .where(
+                DonorProfile.is_otp_verified.is_(True),
+                DonorProfile.is_active.is_(True),
+                DonorProfile.is_available.is_(True),
+                User.is_active.is_(True)
+            )
+        )
+
+        count_query = (
+            select(func.count(DonorProfile.id))
+            .join(DonorProfile.user)
+            .where(
+                DonorProfile.is_otp_verified.is_(True),
+                DonorProfile.is_active.is_(True),
+                DonorProfile.is_available.is_(True),
+                User.is_active.is_(True)
+            )
+        )
+
+        if blood_group:
+            query = query.where(DonorProfile.blood_group == blood_group)
+            count_query = count_query.where(DonorProfile.blood_group == blood_group)
+
+        if location_id:
+            query = query.where(DonorProfile.location_id == location_id)
+            count_query = count_query.where(DonorProfile.location_id == location_id)
+
+        # Count total matches
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+        pages = math.ceil(total / size) if total > 0 else 1
+
+        # Fetch paginated slice ordered by most recently updated
+        query = query.order_by(DonorProfile.updated_at.desc()).offset(offset).limit(size)
+        result = await db.execute(query)
+        donors = result.scalars().all()
+
+        items = [
+            PublicDonorResponse(
+                id=d.id,
+                name=d.user.name,
+                blood_group=d.blood_group,
+                location=LocationResponse.model_validate(d.location),
+                is_available=d.is_available
+            )
+            for d in donors
+        ]
+
+        return PaginatedResponse[PublicDonorResponse](
+            items=items,
+            total=total,
+            page=page,
+            size=size,
+            pages=pages
         )
 
     async def get_donor_profile(
