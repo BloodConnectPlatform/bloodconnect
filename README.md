@@ -38,12 +38,14 @@ pip install -r backend/requirements.txt
 cp backend/.env.example backend/.env
 ```
 
-### 5. Run Migrations & Seed Locations
+### 5. Run Migrations & Seed Database (Locations & Sample Users)
 ```bash
 cd backend
 alembic upgrade head
-python -m app.seeds.locations
+python seed.py
 ```
+*(Or from the project root: `python seed.py`)*
+
 
 ### 6. Run Automated Tests
 ```bash

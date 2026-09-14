@@ -13,6 +13,7 @@ interface AuthContextType {
   openLoginModal: () => void;
   closeLoginModal: () => void;
   login: (mobileNumber: string, otpCode: string) => Promise<User>;
+  authenticateRequester: (name: string, mobileNumber: string, otpCode: string) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   setDonorProfile: (profile: DonorProfile | null) => void;
@@ -77,6 +78,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authData.user;
   };
 
+  const authenticateRequester = async (
+    name: string,
+    mobileNumber: string,
+    otpCode: string
+  ): Promise<User> => {
+    const authData = await api.authenticateRequester({
+      name,
+      mobile_number: mobileNumber,
+      otp_code: otpCode,
+    });
+    setUser(authData.user);
+    if (authData.user.role === 'DONOR') {
+      try {
+        const profile = await api.getDonorProfile();
+        setDonorProfile(profile);
+      } catch {
+        // Profile not found
+      }
+    }
+    closeLoginModal();
+    return authData.user;
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -102,6 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         openLoginModal,
         closeLoginModal,
         login,
+        authenticateRequester,
         logout,
         refreshUser,
         setDonorProfile,

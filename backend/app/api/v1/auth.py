@@ -10,6 +10,7 @@ from app.schemas.auth import (
     LoginRequest,
     LogoutResponse,
     RefreshTokenRequest,
+    RequesterAuthRequest,
     SendOTPRequest,
     SendOTPResponse,
     TokenResponse,
@@ -88,6 +89,25 @@ async def login(
 ):
     return await auth_service.login_with_otp(
         db=db,
+        mobile=request.mobile,
+        otp=request.otp
+    )
+
+
+@router.post(
+    "/requester-auth",
+    response_model=TokenResponse,
+    summary="Requester Login or Sign-Up with Name and OTP",
+    description="Authenticates or registers a requester using their Full Name and verified Mobile OTP.",
+    status_code=status.HTTP_200_OK
+)
+async def requester_auth(
+    request: RequesterAuthRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_service.authenticate_requester(
+        db=db,
+        name=request.name,
         mobile=request.mobile,
         otp=request.otp
     )

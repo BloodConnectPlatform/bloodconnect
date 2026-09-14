@@ -68,6 +68,70 @@ class AuthService:
             user=user_response
         )
 
+    async def authenticate_requester(
+        self, db: AsyncSession, name: str, mobile: str, otp: str
+    ) -> TokenResponse:
+        """Authenticate or register a requester with their Name and verified Mobile OTP."""
+        # 1. Verify OTP
+        await otp_service.verify_otp(db, mobile, otp)
+
+        # 2. Find or create user
+        stmt = select(User).where(User.mobile == mobile)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+
+        if user:
+            if not user.is_active:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Your account has been deactivated. Please contact support."
+                )
+            # Update name if provided and user doesn't have donor profile
+            if name.strip() and not user.donor_profile:
+                user.name = name.strip()
+                await db.commit()
+                await db.refresh(user)
+        else:
+            # Register as new Requester
+            user = User(
+                name=name.strip(),
+                mobile=mobile,
+                role=UserRole.REQUESTER,
+                is_active=True
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+
+        # 3. Create tokens
+        role_val = user.role.value if hasattr(user.role, "value") else str(user.role)
+        token_payload = {
+            "sub": str(user.id),
+            "mobile": user.mobile,
+            "role": role_val
+        }
+        access_token = create_access_token(token_payload)
+        refresh_token = create_refresh_token(token_payload)
+
+        has_donor = user.donor_profile is not None
+
+        user_response = UserResponse(
+            id=user.id,
+            name=user.name,
+            mobile=user.mobile,
+            role=user.role if isinstance(user.role, UserRole) else UserRole(user.role),
+            is_active=user.is_active,
+            has_donor_profile=has_donor,
+            created_at=user.created_at
+        )
+
+        return TokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            user=user_response
+        )
+
     async def refresh_tokens(
         self, db: AsyncSession, refresh_token_str: str
     ) -> TokenResponse:

@@ -297,3 +297,29 @@ async def test_role_authorization_enforcement(client: AsyncClient, db_session: A
     assert res.status_code == 200
     assert res.json()["authorized"] is True
 
+
+@pytest.mark.asyncio
+async def test_requester_auth_flow(client: AsyncClient, db_session: AsyncSession):
+    """Test requester signup and login with Name and mobile OTP."""
+    mobile = "9876543299"
+    send_res = await client.post("/api/v1/auth/send-otp", json={"mobile": mobile})
+    assert send_res.status_code == 200
+    otp = send_res.json()["debug_otp"]
+
+    # First time: signs up as Requester
+    auth_res = await client.post(
+        "/api/v1/auth/requester-auth",
+        json={"name": "Priya Sharma", "mobile": mobile, "otp": otp}
+    )
+    assert auth_res.status_code == 200
+    data = auth_res.json()
+    assert data["user"]["name"] == "Priya Sharma"
+    assert data["user"]["role"] == "REQUESTER"
+    assert "access_token" in data
+
+    # Verify user exists in database
+    stmt = select(User).where(User.mobile == mobile)
+    user = (await db_session.execute(stmt)).scalar_one_or_none()
+    assert user is not None
+    assert user.name == "Priya Sharma"
+

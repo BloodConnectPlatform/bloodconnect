@@ -69,6 +69,17 @@ class LoginRequest(BaseModel):
         return validate_indian_mobile(v)
 
 
+class RequesterAuthRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100, description="Requester full name")
+    mobile: str = Field(..., description="10-digit mobile number")
+    otp: str = Field(..., min_length=4, max_length=8, description="6-digit OTP")
+
+    @field_validator("mobile")
+    @classmethod
+    def check_mobile(cls, v: str) -> str:
+        return validate_indian_mobile(v)
+
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     name: str

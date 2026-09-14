@@ -4,14 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, Heart, ArrowRight } from 'lucide-react';
+import { Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, Heart, ArrowRight, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, user, login } = useAuth();
+  const { isAuthenticated, user, login, authenticateRequester } = useAuth();
 
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [fullName, setFullName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +77,12 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const formatted = normalizePhone(mobileNumber);
-      const loggedUser = await login(formatted, otpCode.trim());
+      let loggedUser;
+      if (fullName.trim()) {
+        loggedUser = await authenticateRequester(fullName.trim(), formatted, otpCode.trim());
+      } else {
+        loggedUser = await login(formatted, otpCode.trim());
+      }
       if (loggedUser.role === 'ADMIN') {
         router.push('/admin');
       } else if (loggedUser.role === 'DONOR') {
@@ -99,11 +105,11 @@ export default function LoginPage() {
             {step === 'PHONE' ? <Phone className="w-6 h-6 text-white" /> : <KeyRound className="w-6 h-6 text-white" />}
           </div>
           <h2 className="text-2xl font-black">
-            {step === 'PHONE' ? 'Simple Login' : 'Verify Mobile OTP'}
+            {step === 'PHONE' ? 'Sign In / Quick Requester Access' : 'Verify Mobile OTP'}
           </h2>
           <p className="text-xs text-rose-100 mt-1">
             {step === 'PHONE'
-              ? 'Enter your name and mobile number to access Blood Connect.'
+              ? 'Enter your name and mobile number to sign in or find donors.'
               : `Enter the 6-digit code sent to ${mobileNumber}`}
           </p>
         </div>
@@ -120,13 +126,18 @@ export default function LoginPage() {
             <form onSubmit={handleSendOtp} className="space-y-5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Your Name (Optional)
+                  Full Name (Required for new requesters)
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ramesh Kumar"
-                  className="w-full px-4 py-3 text-sm border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
-                />
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Ramesh Kumar"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full pl-11 pr-4 py-3 text-sm border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
+                  />
+                </div>
               </div>
 
               <div>

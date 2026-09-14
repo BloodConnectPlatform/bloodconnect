@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   PhoneCall,
   Activity,
-  Users,
   Phone,
   KeyRound,
   Loader2,
@@ -157,12 +156,12 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      {/* ================= 1. FIRST SECTION: CHOOSE YOUR PURPOSE ================= */}
+      {/* ================= HERO & CHOOSE YOUR PURPOSE ================= */}
       <section className="relative overflow-hidden bg-gradient-to-b from-red-50/80 via-white to-slate-50 pt-10 pb-16 md:pt-14 md:pb-20 border-b border-slate-200/70">
         <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.7))] -z-10" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header Banner */}
+          {/* Main Title & Slogan */}
           <div className="text-center max-w-3xl mx-auto space-y-3 mb-10 md:mb-12">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-100/80 text-red-700 text-xs font-bold uppercase tracking-wider">
               <Droplet className="w-3.5 h-3.5 fill-red-600 text-red-600" />
@@ -180,33 +179,28 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Section 1 Main Frame: Choose Your Purpose Dual Cards */}
+          {/* Choose Your Purpose Dual Cards */}
           <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-6">
-              <span className="text-xs font-black uppercase tracking-widest text-red-600">
-                1. CHOOSE YOUR PURPOSE
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
-                How Can We Help You Today?
+            <div className="text-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                Choose Your Purpose
               </h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Select between voluntary donor registration and finding blood donors near you.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-              {/* Option 1: REGISTER AS A DONOR */}
+              {/* Card 1: Register as a Donor */}
               <div className="bg-white rounded-3xl p-7 md:p-9 border-2 border-red-100 shadow-xl shadow-red-500/5 flex flex-col justify-between hover:border-red-300 transition-all">
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center text-red-600">
-                      <Heart className="w-8 h-8 fill-red-600" />
-                    </div>
-                    <span className="px-3 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-full border border-red-200">
-                      Option 1
-                    </span>
+                  <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center text-red-600">
+                    <Heart className="w-8 h-8 fill-red-600" />
                   </div>
 
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-                      <span>🩸</span> REGISTER AS A DONOR
+                    <h3 className="text-2xl font-black text-slate-900">
+                      Register as a Donor
                     </h3>
                     <p className="text-base font-bold text-slate-800 mt-2">
                       Want to donate blood?
@@ -216,7 +210,7 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  {/* Highlights */}
+                  {/* Benefits */}
                   <div className="space-y-2.5 pt-2 border-t border-slate-100">
                     <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-700">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
@@ -245,21 +239,16 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Option 2: FIND A DONOR (With Inline Login Prompt) */}
+              {/* Card 2: Find a Donor (With Embedded Simple Login) */}
               <div className="bg-white rounded-3xl p-7 md:p-9 border-2 border-slate-200 shadow-xl shadow-slate-200/60 flex flex-col justify-between hover:border-slate-300 transition-all">
                 <div className="space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white">
-                      <Search className="w-7 h-7 text-rose-400" />
-                    </div>
-                    <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full border border-slate-200">
-                      Option 2
-                    </span>
+                  <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white">
+                    <Search className="w-7 h-7 text-rose-400" />
                   </div>
 
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
-                      <span>🔎</span> FIND A DONOR
+                    <h3 className="text-2xl font-black text-slate-900">
+                      Find a Donor
                     </h3>
                     <p className="text-base font-bold text-slate-800 mt-2">
                       Need blood?
@@ -271,12 +260,12 @@ export default function HomePage() {
                     </p>
                   </div>
 
-                  {/* IF USER IS NOT AUTHENTICATED: INLINE LOGIN FORM */}
+                  {/* IF USER IS NOT AUTHENTICATED: EMBEDDED SIMPLE LOGIN FORM */}
                   {!isAuthenticated ? (
                     <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700">
                         <Lock className="w-4 h-4 text-red-600" />
-                        <span>Simple Login Required to Search</span>
+                        <span>Sign In with Mobile OTP</span>
                       </div>
 
                       {loginError && (
@@ -445,7 +434,7 @@ export default function HomePage() {
                             <option value="">All 11 Regions (Tamil Nadu)</option>
                             {locations.map((loc) => (
                               <option key={loc.id} value={loc.name}>
-                                {loc.name}
+                                {loc.name} ({loc.district})
                               </option>
                             ))}
                           </select>
@@ -465,9 +454,9 @@ export default function HomePage() {
 
                 {!isAuthenticated && (
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>Already have a donor account?</span>
+                    <span>Already registered?</span>
                     <Link href="/login" className="text-red-600 font-bold hover:underline cursor-pointer">
-                      Full Login Page &rarr;
+                      Sign In &rarr;
                     </Link>
                   </div>
                 )}
@@ -477,12 +466,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= 2. ABOUT OUR INITIATIVE & 3. IMPORTANT NOTE / DISCLAIMER ================= */}
+      {/* ================= ABOUT OUR INITIATIVE & IMPORTANT NOTE ================= */}
       <section id="about-initiative" className="py-16 md:py-20 bg-white border-b border-slate-200/60">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="space-y-4">
             <span className="text-xs font-bold uppercase tracking-widest text-red-600">
-              2. ABOUT OUR INITIATIVE
+              About Our Initiative
             </span>
             <h2 className="text-3xl sm:text-4xl font-black text-slate-900">
               What is Blood Connect?
@@ -492,17 +481,16 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* IMPORTANT NOTE / DISCLAIMER BOX */}
+          {/* Important Medical Disclaimer Box */}
           <div id="important-note" className="p-6 md:p-8 bg-amber-50/80 rounded-3xl border border-amber-200 space-y-4 shadow-xs">
             <div className="flex items-center gap-3 text-amber-900 font-black text-lg">
               <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
-              <span>IMPORTANT NOTE :</span>
+              <span>Important Medical Disclaimer</span>
             </div>
             <p className="text-sm md:text-base text-amber-900 leading-relaxed font-medium">
               Blood Connect is only a platform that connects blood donors with people seeking blood. We do not collect, store, test, or handle blood in any way. All medical checks, compatibility, donor eligibility, and the donation process must be verified and handled by the respective hospital or doctor.
             </p>
 
-            {/* 3. IMPORTANT NOTE / DISCLAIMER Checkbox */}
             <div className="pt-4 border-t border-amber-200/80">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input

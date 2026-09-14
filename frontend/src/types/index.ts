@@ -22,11 +22,14 @@ export interface LocationItem {
 }
 
 export interface User {
-  id: number;
-  mobile_number: string;
+  id: string | number;
+  name?: string;
+  mobile_number?: string;
+  mobile?: string;
   role: UserRole;
   is_active: boolean;
-  is_verified: boolean;
+  is_verified?: boolean;
+  has_donor_profile?: boolean;
   created_at: string;
 }
 

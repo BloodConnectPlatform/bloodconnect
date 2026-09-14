@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { X, Phone, KeyRound, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, User as UserIcon } from 'lucide-react';
 
 interface AuthModalProps {
   onSuccess?: () => void;
@@ -12,9 +12,10 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const router = useRouter();
-  const { isLoginModalOpen, closeLoginModal, login } = useAuth();
+  const { isLoginModalOpen, closeLoginModal, login, authenticateRequester } = useAuth();
 
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [fullName, setFullName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +34,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   useEffect(() => {
     if (!isLoginModalOpen) {
       setStep('PHONE');
+      setFullName('');
       setMobileNumber('');
       setOtpCode('');
       setError(null);
@@ -87,7 +89,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     setIsLoading(true);
     try {
       const formatted = normalizePhone(mobileNumber);
-      const user = await login(formatted, otpCode.trim());
+      let user;
+      if (fullName.trim()) {
+        user = await authenticateRequester(fullName.trim(), formatted, otpCode.trim());
+      } else {
+        user = await login(formatted, otpCode.trim());
+      }
+
       closeLoginModal();
       if (onSuccess) {
         onSuccess();
@@ -114,7 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         <div className="bg-gradient-to-r from-red-600 to-rose-700 p-6 text-white text-center relative">
           <button
             onClick={closeLoginModal}
-            className="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -123,11 +131,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             {step === 'PHONE' ? <Phone className="w-6 h-6 text-white" /> : <KeyRound className="w-6 h-6 text-white" />}
           </div>
           <h3 className="text-xl font-bold">
-            {step === 'PHONE' ? 'Simple Login' : 'Verify Mobile OTP'}
+            {step === 'PHONE' ? 'Sign In / Quick Requester Sign Up' : 'Verify Mobile OTP'}
           </h3>
           <p className="text-xs text-rose-100 mt-1">
             {step === 'PHONE'
-              ? 'Enter your name and mobile number to find donors or access your dashboard.'
+              ? 'Enter your mobile number and name to sign in or request blood.'
               : `Enter the 6-digit code sent to ${mobileNumber}`}
           </p>
         </div>
@@ -152,13 +160,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Your Name (Optional)
+                  Full Name (Required for new Requesters)
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ramesh Kumar"
-                  className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
-                />
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Anand Kumar"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
+                  />
+                </div>
               </div>
 
               <div>
@@ -195,7 +208,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     Sending OTP...
                   </>
                 ) : (
-                  'Login'
+                  'Send One-Time Passcode'
                 )}
               </button>
 
@@ -208,7 +221,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                       closeLoginModal();
                       router.push('/register');
                     }}
-                    className="text-red-600 font-semibold hover:underline"
+                    className="text-red-600 font-semibold hover:underline cursor-pointer"
                   >
                     Register as Donor
                   </button>
@@ -237,7 +250,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="button"
                   onClick={() => setStep('PHONE')}
-                  className="text-slate-500 hover:text-slate-800 font-medium"
+                  className="text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
                 >
                   Change Number
                 </button>
@@ -247,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <button
                     type="button"
                     onClick={handleSendOtp}
-                    className="text-red-600 font-semibold hover:underline"
+                    className="text-red-600 font-semibold hover:underline cursor-pointer"
                   >
                     Resend OTP
                   </button>
