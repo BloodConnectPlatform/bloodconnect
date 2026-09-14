@@ -163,22 +163,19 @@ export default function HomePage() {
                     2. Location / Area of Choice
                   </label>
                   <div className="relative">
-                    <MapPin className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      list="home-locations-list"
-                      placeholder="Enter any location (e.g. Coimbatore, Sulur, Pollachi, Tiruppur...)"
+                    <MapPin className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
                       value={locationQuery}
                       onChange={(e) => setLocationQuery(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400"
-                    />
-                    <datalist id="home-locations-list">
+                      className="w-full pl-11 pr-8 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all cursor-pointer"
+                    >
+                      <option value="">Select Location / Area</option>
                       {locations.map((loc) => (
                         <option key={loc.id} value={loc.name}>
                           {loc.name} ({loc.district})
                         </option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
 
                   {/* Quick Popular Location Suggestion Chips */}

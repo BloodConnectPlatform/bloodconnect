@@ -229,22 +229,22 @@ function FindDonorContent() {
               </label>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    list="search-locations-list"
-                    placeholder="Enter any location (e.g. Sulur, Pollachi, Coimbatore, Tiruppur, Avinashi...)"
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
                     value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 outline-hidden"
-                  />
-                  <datalist id="search-locations-list">
+                    onChange={(e) => {
+                      setLocationQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
+                  >
+                    <option value="">Select Location / Area</option>
                     {locations.map((loc) => (
                       <option key={loc.id} value={loc.name}>
                         {loc.name} ({loc.district})
                       </option>
                     ))}
-                  </datalist>
+                  </select>
                 </div>
 
                 <button
