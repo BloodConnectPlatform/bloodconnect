@@ -114,10 +114,11 @@ class DonorService:
         await db.refresh(user)
 
         # 5. Generate Auth Tokens
+        role_val = user.role.value if hasattr(user.role, "value") else str(user.role)
         token_payload = {
             "sub": str(user.id),
             "mobile": user.mobile,
-            "role": user.role.value
+            "role": role_val
         }
         access_token = create_access_token(token_payload)
         refresh_token = create_refresh_token(token_payload)
@@ -126,7 +127,7 @@ class DonorService:
             id=user.id,
             name=user.name,
             mobile=user.mobile,
-            role=user.role,
+            role=user.role if isinstance(user.role, UserRole) else UserRole(user.role),
             is_active=user.is_active,
             has_donor_profile=True,
             created_at=user.created_at

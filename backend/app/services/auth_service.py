@@ -8,6 +8,7 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
 )
+from app.models.enums import UserRole
 from app.models.user import User
 from app.schemas.auth import TokenResponse, UserResponse
 from app.services.otp_service import otp_service
@@ -39,10 +40,11 @@ class AuthService:
             )
 
         # 3. Create tokens
+        role_val = user.role.value if hasattr(user.role, "value") else str(user.role)
         token_payload = {
             "sub": str(user.id),
             "mobile": user.mobile,
-            "role": user.role.value
+            "role": role_val
         }
         access_token = create_access_token(token_payload)
         refresh_token = create_refresh_token(token_payload)
@@ -53,7 +55,7 @@ class AuthService:
             id=user.id,
             name=user.name,
             mobile=user.mobile,
-            role=user.role,
+            role=user.role if isinstance(user.role, UserRole) else UserRole(user.role),
             is_active=user.is_active,
             has_donor_profile=has_donor,
             created_at=user.created_at
@@ -109,10 +111,11 @@ class AuthService:
                 detail="User inactive or no longer exists."
             )
 
+        role_val = user.role.value if hasattr(user.role, "value") else str(user.role)
         token_payload = {
             "sub": str(user.id),
             "mobile": user.mobile,
-            "role": user.role.value
+            "role": role_val
         }
         new_access_token = create_access_token(token_payload)
         new_refresh_token = create_refresh_token(token_payload)
@@ -123,7 +126,7 @@ class AuthService:
             id=user.id,
             name=user.name,
             mobile=user.mobile,
-            role=user.role,
+            role=user.role if isinstance(user.role, UserRole) else UserRole(user.role),
             is_active=user.is_active,
             has_donor_profile=has_donor,
             created_at=user.created_at
