@@ -22,6 +22,16 @@ from app.schemas.donor import (
     DonorDashboardStats,
     DonorDashboardResponse,
 )
+from app.schemas.request import (
+    CreateBloodRequest,
+    BloodRequestResponse,
+    SentRequestSummary,
+    ReceivedRequestSummary,
+)
+from app.schemas.notification import (
+    NotificationResponse,
+    NotificationListResponse,
+)
 
 __all__ = [
     "HealthResponse",
@@ -45,4 +55,10 @@ __all__ = [
     "DonorRequestSummary",
     "DonorDashboardStats",
     "DonorDashboardResponse",
+    "CreateBloodRequest",
+    "BloodRequestResponse",
+    "SentRequestSummary",
+    "ReceivedRequestSummary",
+    "NotificationResponse",
+    "NotificationListResponse",
 ]

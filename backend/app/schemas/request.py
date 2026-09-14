@@ -1,0 +1,71 @@
+from datetime import datetime
+from typing import Optional
+import uuid
+from pydantic import BaseModel, Field
+from app.models.enums import BloodGroup, RequestStatus
+from app.schemas.donor import LocationResponse
+
+
+class CreateBloodRequest(BaseModel):
+    donor_id: uuid.UUID = Field(..., description="Target donor profile ID")
+    blood_group: BloodGroup = Field(..., description="Required blood group")
+    location_id: int = Field(..., description="Donation hospital / clinic location ID")
+    message: Optional[str] = Field(None, max_length=500, description="Optional note for the donor (e.g. hospital name, urgency)")
+
+
+class BloodRequestResponse(BaseModel):
+    id: uuid.UUID
+    requester_id: uuid.UUID
+    donor_id: uuid.UUID
+    blood_group: BloodGroup
+    location: LocationResponse
+    message: Optional[str] = None
+    status: RequestStatus
+    created_at: datetime
+    responded_at: Optional[datetime] = None
+    donor_name: str
+    donor_mobile: Optional[str] = Field(
+        None,
+        description="Donor phone number (revealed ONLY when status == ACCEPTED)"
+    )
+    requester_name: str
+    requester_mobile: Optional[str] = Field(
+        None,
+        description="Requester phone number (revealed ONLY when status == ACCEPTED)"
+    )
+
+    model_config = {"from_attributes": True}
+
+
+class SentRequestSummary(BaseModel):
+    id: uuid.UUID
+    blood_group: BloodGroup
+    location: LocationResponse
+    status: RequestStatus
+    message: Optional[str] = None
+    created_at: datetime
+    responded_at: Optional[datetime] = None
+    donor_name: str
+    donor_mobile: Optional[str] = Field(
+        None,
+        description="Donor contact revealed to requester only upon acceptance"
+    )
+
+    model_config = {"from_attributes": True}
+
+
+class ReceivedRequestSummary(BaseModel):
+    id: uuid.UUID
+    blood_group: BloodGroup
+    location: LocationResponse
+    status: RequestStatus
+    message: Optional[str] = None
+    created_at: datetime
+    responded_at: Optional[datetime] = None
+    requester_name: str
+    requester_mobile: Optional[str] = Field(
+        None,
+        description="Requester contact revealed to donor only upon acceptance"
+    )
+
+    model_config = {"from_attributes": True}
