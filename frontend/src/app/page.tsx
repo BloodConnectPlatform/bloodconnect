@@ -17,10 +17,7 @@ import {
   AlertTriangle,
   PhoneCall,
   Activity,
-  Phone,
-  KeyRound,
   Loader2,
-  Lock,
 } from 'lucide-react';
 import { BloodGroup, LocationItem } from '@/types';
 import { api } from '@/lib/api';
@@ -44,7 +41,7 @@ const DEFAULT_LOCATIONS: LocationItem[] = [
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, user, donorProfile, login } = useAuth();
+  const { isAuthenticated, user, donorProfile } = useAuth();
 
   const [locations, setLocations] = useState<LocationItem[]>(DEFAULT_LOCATIONS);
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>('');
@@ -56,23 +53,6 @@ export default function HomePage() {
     total_locations: 11,
     avg_response_mins: 15,
   });
-
-  // Inline Login state for Find a Donor frame
-  const [loginStep, setLoginStep] = useState<'PHONE' | 'OTP'>('PHONE');
-  const [loginName, setLoginName] = useState('');
-  const [loginMobile, setLoginMobile] = useState('');
-  const [loginOtp, setLoginOtp] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
-  const [loginCooldown, setLoginCooldown] = useState(0);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (loginCooldown > 0) {
-      timer = setTimeout(() => setLoginCooldown((prev) => prev - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [loginCooldown]);
 
   useEffect(() => {
     api.getLocations().then((data) => {
@@ -94,57 +74,6 @@ export default function HomePage() {
       }
     }).catch(() => {});
   }, []);
-
-  const normalizePhone = (num: string) => {
-    const cleaned = num.replace(/\D/g, '');
-    if (cleaned.length === 10) return `+91${cleaned}`;
-    if (cleaned.length === 12 && cleaned.startsWith('91')) return `+${cleaned}`;
-    if (num.startsWith('+91') && cleaned.length === 12) return num;
-    return `+91${cleaned}`;
-  };
-
-  const handleInlineSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-
-    const formatted = normalizePhone(loginMobile);
-    if (!/^\+91[6-9]\d{9}$/.test(formatted)) {
-      setLoginError('Please enter a valid 10-digit Indian mobile number');
-      return;
-    }
-
-    setLoginLoading(true);
-    try {
-      const res = await api.sendOtp(formatted, 'LOGIN');
-      setLoginStep('OTP');
-      setLoginCooldown(res.cooldown_seconds || 60);
-    } catch (err: any) {
-      setLoginError(err.message || 'Failed to send OTP.');
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleInlineVerifyLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError(null);
-
-    if (loginOtp.trim().length !== 6) {
-      setLoginError('Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setLoginLoading(true);
-    try {
-      const formatted = normalizePhone(loginMobile);
-      await login(formatted, loginOtp.trim());
-      setLoginStep('PHONE');
-    } catch (err: any) {
-      setLoginError(err.message || 'Invalid or expired OTP.');
-    } finally {
-      setLoginLoading(false);
-    }
-  };
 
   const handleSearchDonors = (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,7 +168,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Card 2: Find a Donor (With Embedded Simple Login) */}
+              {/* Card 2: Find a Donor */}
               <div className="bg-white rounded-3xl p-7 md:p-9 border-2 border-slate-200 shadow-xl shadow-slate-200/60 flex flex-col justify-between hover:border-slate-300 transition-all">
                 <div className="space-y-5">
                   <div className="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-white">
@@ -254,212 +183,73 @@ export default function HomePage() {
                       Need blood?
                     </p>
                     <p className="text-sm text-slate-600 leading-relaxed mt-1">
-                      {isAuthenticated
-                        ? 'Select blood group and location to search active donors.'
-                        : 'Please log in below to select details and find verified donors.'}
+                      Search voluntary blood donors by blood group and location to connect directly for emergency requirements.
                     </p>
                   </div>
 
-                  {/* IF USER IS NOT AUTHENTICATED: EMBEDDED SIMPLE LOGIN FORM */}
-                  {!isAuthenticated ? (
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700">
-                        <Lock className="w-4 h-4 text-red-600" />
-                        <span>Sign In with Mobile OTP</span>
+                  <form onSubmit={handleSearchDonors} className="space-y-4 pt-1">
+                    {/* Blood Group Selector */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
+                        Select Blood Group:
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {BLOOD_GROUPS.map((bg) => (
+                          <button
+                            key={bg}
+                            type="button"
+                            onClick={() => setSelectedGroup(selectedGroup === bg ? '' : bg)}
+                            className={`py-2 px-1 rounded-xl font-bold text-xs transition-all border text-center cursor-pointer ${
+                              selectedGroup === bg
+                                ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-500/20'
+                                : 'bg-slate-50 hover:bg-red-50 text-slate-800 border-slate-200 hover:border-red-200'
+                            }`}
+                          >
+                            {bg}
+                          </button>
+                        ))}
                       </div>
-
-                      {loginError && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
-                          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                          <span>{loginError}</span>
-                        </div>
-                      )}
-
-                      {loginStep === 'PHONE' ? (
-                        <form onSubmit={handleInlineSendOtp} className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-600 mb-1">
-                              Your Name (Optional)
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Ramesh Kumar"
-                              value={loginName}
-                              onChange={(e) => setLoginName(e.target.value)}
-                              className="w-full px-3.5 py-2.5 bg-white text-xs border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                              Mobile Number *
-                            </label>
-                            <div className="relative">
-                              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
-                                +91
-                              </span>
-                              <input
-                                type="tel"
-                                maxLength={10}
-                                placeholder="9876543210"
-                                value={loginMobile.replace(/^\+91/, '')}
-                                onChange={(e) => setLoginMobile(e.target.value.replace(/\D/g, ''))}
-                                required
-                                className="w-full pl-12 pr-3.5 py-2.5 bg-white text-xs border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
-                              />
-                            </div>
-                          </div>
-
-                          <button
-                            type="submit"
-                            disabled={loginLoading}
-                            className="w-full py-3 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                          >
-                            {loginLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Sending OTP...</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>Continue with Mobile OTP</span>
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </>
-                            )}
-                          </button>
-                        </form>
-                      ) : (
-                        <form onSubmit={handleInlineVerifyLogin} className="space-y-3">
-                          <div className="flex items-center justify-between text-xs text-slate-600">
-                            <span>Code sent to: <strong>+91 {loginMobile.slice(-10)}</strong></span>
-                            <button
-                              type="button"
-                              onClick={() => setLoginStep('PHONE')}
-                              className="text-red-600 font-bold hover:underline cursor-pointer"
-                            >
-                              Change
-                            </button>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 mb-1">
-                              6-Digit OTP *
-                            </label>
-                            <div className="relative">
-                              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                              <input
-                                type="text"
-                                maxLength={6}
-                                placeholder="123456"
-                                value={loginOtp}
-                                onChange={(e) => setLoginOtp(e.target.value.replace(/\D/g, ''))}
-                                required
-                                autoFocus
-                                className="w-full pl-10 pr-3.5 py-2.5 bg-white text-sm tracking-widest font-black text-slate-900 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden text-center"
-                              />
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-1">
-                              💡 Demo Mode: Enter any 6-digit code or <code className="bg-slate-200 px-1 py-0.5 rounded font-mono">123456</code>
-                            </p>
-                          </div>
-
-                          <button
-                            type="submit"
-                            disabled={loginLoading}
-                            className="w-full py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                          >
-                            {loginLoading ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span>Verifying OTP...</span>
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle2 className="w-4 h-4" />
-                                <span>Verify & Unlock Search</span>
-                              </>
-                            )}
-                          </button>
-                        </form>
-                      )}
                     </div>
-                  ) : (
-                    /* IF USER IS AUTHENTICATED: SHOW SEARCH DETAILS DIRECTLY */
-                    <form onSubmit={handleSearchDonors} className="space-y-4 pt-1">
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800 font-semibold">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          <span>Logged in as <strong>{donorProfile?.full_name || user?.mobile_number}</strong></span>
-                        </div>
-                        <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-bold">
-                          {user?.role}
-                        </span>
-                      </div>
 
-                      {/* Blood Group Selector */}
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">
-                          Select Blood Group:
-                        </label>
-                        <div className="grid grid-cols-4 gap-2">
-                          {BLOOD_GROUPS.map((bg) => (
-                            <button
-                              key={bg}
-                              type="button"
-                              onClick={() => setSelectedGroup(selectedGroup === bg ? '' : bg)}
-                              className={`py-2 px-1 rounded-xl font-bold text-xs transition-all border text-center cursor-pointer ${
-                                selectedGroup === bg
-                                  ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-500/20'
-                                  : 'bg-slate-50 hover:bg-red-50 text-slate-800 border-slate-200 hover:border-red-200'
-                              }`}
-                            >
-                              {bg}
-                            </button>
+                    {/* Location Selector */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Select Location / Area:
+                      </label>
+                      <div className="relative">
+                        <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <select
+                          value={locationQuery}
+                          onChange={(e) => setLocationQuery(e.target.value)}
+                          className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all cursor-pointer"
+                        >
+                          <option value="">All Locations / Areas</option>
+                          {locations.map((loc) => (
+                            <option key={loc.id} value={loc.name}>
+                              {loc.name}
+                            </option>
                           ))}
-                        </div>
+                        </select>
                       </div>
+                    </div>
 
-                      {/* Location Selector */}
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                          Select Location:
-                        </label>
-                        <div className="relative">
-                          <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          <select
-                            value={locationQuery}
-                            onChange={(e) => setLocationQuery(e.target.value)}
-                            className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all cursor-pointer"
-                          >
-                            <option value="">All 11 Regions (Tamil Nadu)</option>
-                            {locations.map((loc) => (
-                              <option key={loc.id} value={loc.name}>
-                                {loc.name} ({loc.district})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3.5 px-6 bg-slate-900 hover:bg-black text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <Search className="w-4 h-4 text-rose-400" />
-                        <span>SEARCH DONORS</span>
-                      </button>
-                    </form>
-                  )}
+                    <button
+                      type="submit"
+                      className="w-full py-4 px-6 bg-slate-900 hover:bg-black text-white font-black text-base rounded-2xl shadow-lg shadow-slate-900/20 hover:shadow-xl transition-all flex items-center justify-center gap-3 cursor-pointer group"
+                    >
+                      <Search className="w-5 h-5 text-rose-400" />
+                      <span>FIND BLOOD DONORS</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  </form>
                 </div>
 
-                {!isAuthenticated && (
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>Already registered?</span>
-                    <Link href="/login" className="text-red-600 font-bold hover:underline cursor-pointer">
-                      Sign In &rarr;
-                    </Link>
-                  </div>
-                )}
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                  <span>Looking to explore all donors?</span>
+                  <Link href="/find-donor" className="text-red-600 font-bold hover:underline cursor-pointer">
+                    Browse All Donors &rarr;
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
