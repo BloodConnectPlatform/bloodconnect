@@ -58,9 +58,11 @@ function FindDonorContent() {
     searchParams.get('location') || searchParams.get('taluk') || ''
   );
 
+  const hasFilterEntered = Boolean(selectedGroup || locationQuery.trim());
+
   const [donors, setDonors] = useState<PublicDonor[]>([]);
   const [totalCount, setTotalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Request Modal State
@@ -103,8 +105,15 @@ function FindDonorContent() {
     }).catch(() => {});
   }, []);
 
-  // Fetch Donors
+  // Fetch Donors (Only when filter criteria are provided)
   const fetchDonors = async () => {
+    if (!selectedGroup && !locationQuery.trim()) {
+      setDonors([]);
+      setTotalCount(0);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await api.searchDonors({
@@ -124,8 +133,14 @@ function FindDonorContent() {
   };
 
   useEffect(() => {
-    fetchDonors();
-  }, [selectedGroup, currentPage]);
+    if (selectedGroup || locationQuery.trim()) {
+      fetchDonors();
+    } else {
+      setDonors([]);
+      setTotalCount(0);
+      setIsLoading(false);
+    }
+  }, [selectedGroup, locationQuery, currentPage]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -429,139 +444,181 @@ function FindDonorContent() {
           <MedicalDisclaimer variant="compact" />
         </div>
 
-        {/* Results Header */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-700">
-            Showing <span className="text-red-600 font-bold">{donors.length}</span> of {totalCount} voluntary donors found
-            {locationQuery && (
-              <span className="text-slate-500 font-normal"> in "{locationQuery}"</span>
-            )}
-          </div>
-        </div>
-
-        {/* Donors Grid */}
-        {isLoading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-            <p className="text-sm font-medium">Searching matching blood donors...</p>
-          </div>
-        ) : donors.length === 0 ? (
-          <div className="py-16 text-center bg-white rounded-3xl border border-slate-200 p-8 space-y-4">
-            <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
-              <AlertCircle className="w-7 h-7" />
+        {/* Results Area */}
+        {!hasFilterEntered ? (
+          /* Initial State: Prompt user to enter search filters */
+          <div className="py-16 text-center bg-white rounded-3xl border border-slate-200/90 p-8 md:p-12 space-y-5 shadow-xs">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner">
+              <Search className="w-8 h-8 text-red-600" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800">No Donors Found Matching Your Criteria</h3>
-            <p className="text-sm text-slate-500 max-w-md mx-auto">
-              Try choosing "All Blood Groups" or clearing the location filter.
-            </p>
-            <button
-              onClick={() => {
-                setSelectedGroup('');
-                setLocationQuery('');
-                setCurrentPage(1);
-                fetchDonors();
-              }}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
-            >
-              Reset All Filters
-            </button>
+            <div className="space-y-1.5 max-w-md mx-auto">
+              <h3 className="text-xl font-black text-slate-900">
+                Search for Voluntary Donors
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                Please select a <strong>Blood Group</strong> or choose a <strong>Location / Area</strong> from the filters above to find matching blood donors.
+              </p>
+            </div>
+            <div className="pt-2 flex flex-wrap justify-center items-center gap-2">
+              <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block w-full mb-1">
+                Quick Blood Group Selection:
+              </span>
+              {BLOOD_GROUPS.map((bg) => (
+                <button
+                  key={bg}
+                  type="button"
+                  onClick={() => {
+                    setSelectedGroup(bg);
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-50 hover:bg-red-600 hover:text-white text-slate-700 border border-slate-200 hover:border-red-600 transition-all cursor-pointer shadow-xs hover:shadow-md"
+                >
+                  {bg}
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {donors.map((donor) => (
-              <div
-                key={donor.id}
-                className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all p-6 flex flex-col justify-between group"
-              >
-                <div>
-                  {/* Top Bar: Group Badge + Availability */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center font-black text-lg shadow-md shadow-red-500/20">
-                        {donor.blood_group}
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-slate-900 group-hover:text-red-600 transition-colors">
-                          {donor.full_name || donor.name}
-                        </h3>
-                        <span className="text-xs font-semibold text-slate-500">
-                          {donor.age ? `${donor.age} Years Old` : 'Eligible Voluntary Donor'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {donor.is_available ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                          Available
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
-                          Unavailable
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Donor Details: ONLY Name, Age, Blood Group, Location */}
-                  <div className="space-y-2 py-3 border-y border-slate-100 text-xs text-slate-600">
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-medium">Age:</span>
-                      <span className="font-bold text-slate-800">
-                        {donor.age ? `${donor.age} Years` : '18+ Years'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-medium">Blood Group:</span>
-                      <span className="font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
-                        {donor.blood_group}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 font-medium">Location:</span>
-                      <div className="flex items-center gap-1 font-bold text-slate-800">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                        <span>{donor.location?.name}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Privacy guarantee text */}
-                  <div className="pt-3 pb-4 text-[11px] text-slate-400 flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                    <span>Phone number protected until donor accepts</span>
-                  </div>
-                </div>
-
-                {/* Bottom Actions */}
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    onClick={() => handleOpenRequestModal(donor)}
-                    disabled={!donor.is_available}
-                    className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    Request Contact
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setReportModalDonor(donor);
-                      setReportSuccess(false);
-                      setReportError(null);
-                    }}
-                    className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                    title="Report profile issue"
-                  >
-                    <Flag className="w-4 h-4" />
-                  </button>
-                </div>
+          <>
+            {/* Results Header */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-700">
+                Showing <span className="text-red-600 font-bold">{donors.length}</span> of {totalCount} voluntary donors found
+                {selectedGroup && (
+                  <span className="text-slate-800 font-bold"> for {selectedGroup}</span>
+                )}
+                {locationQuery && (
+                  <span className="text-slate-500 font-normal"> in "{locationQuery}"</span>
+                )}
               </div>
-            ))}
-          </div>
+            </div>
+
+            {/* Donors Grid */}
+            {isLoading ? (
+              <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+                <p className="text-sm font-medium">Searching matching blood donors...</p>
+              </div>
+            ) : donors.length === 0 ? (
+              <div className="py-16 text-center bg-white rounded-3xl border border-slate-200 p-8 space-y-4">
+                <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
+                  <AlertCircle className="w-7 h-7" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">No Donors Found Matching Your Criteria</h3>
+                <p className="text-sm text-slate-500 max-w-md mx-auto">
+                  Try choosing a different blood group or clearing the location filter.
+                </p>
+                <button
+                  onClick={() => {
+                    setSelectedGroup('');
+                    setLocationQuery('');
+                    setCurrentPage(1);
+                    setDonors([]);
+                    setTotalCount(0);
+                  }}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Reset All Filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {donors.map((donor) => (
+                  <div
+                    key={donor.id}
+                    className="bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all p-6 flex flex-col justify-between group"
+                  >
+                    <div>
+                      {/* Top Bar: Group Badge + Availability */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center font-black text-lg shadow-md shadow-red-500/20">
+                            {donor.blood_group}
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900 group-hover:text-red-600 transition-colors">
+                              {donor.full_name || donor.name}
+                            </h3>
+                            <span className="text-xs font-semibold text-slate-500">
+                              {donor.age ? `${donor.age} Years Old` : 'Eligible Voluntary Donor'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          {donor.is_available ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                              Available
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
+                              Unavailable
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Donor Details: ONLY Name, Age, Blood Group, Location */}
+                      <div className="space-y-2 py-3 border-y border-slate-100 text-xs text-slate-600">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 font-medium">Age:</span>
+                          <span className="font-bold text-slate-800">
+                            {donor.age ? `${donor.age} Years` : '18+ Years'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 font-medium">Blood Group:</span>
+                          <span className="font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md">
+                            {donor.blood_group}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 font-medium">Location:</span>
+                          <div className="flex items-center gap-1 font-bold text-slate-800">
+                            <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                            <span>{donor.location?.name}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Privacy guarantee text */}
+                      <div className="pt-3 pb-4 text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+                        <span>Phone number protected until donor accepts</span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Actions */}
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        onClick={() => handleOpenRequestModal(donor)}
+                        disabled={!donor.is_available}
+                        className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        Request Contact
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setReportModalDonor(donor);
+                          setReportSuccess(false);
+                          setReportError(null);
+                        }}
+                        className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                        title="Report profile issue"
+                      >
+                        <Flag className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
