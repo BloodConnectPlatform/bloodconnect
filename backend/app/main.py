@@ -20,13 +20,15 @@ logger = logging.getLogger("blood_connect")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Blood Connect API...")
-    # In development / SQLite mode, automatically create tables and seed locations if not existing
+    # In development / SQLite mode, automatically create tables and seed locations and users if not existing
     if settings.DATABASE_URL.startswith("sqlite"):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         async with AsyncSessionLocal() as session:
             await seed_locations(session)
-        logger.info("Initialized local SQLite database and verified location seeds.")
+            from app.seeds.users import seed_users
+            await seed_users(session)
+        logger.info("Initialized local SQLite database and verified locations & sample users/admin.")
     yield
     logger.info("Shutting down Blood Connect API...")
     await engine.dispose()

@@ -37,11 +37,19 @@ const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, openLoginModal } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, login, openLoginModal } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'DONORS' | 'REQUESTS' | 'REPORTS' | 'AUDIT'>('DONORS');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
+
+  // Admin Direct Login State
+  const [adminPhone, setAdminPhone] = useState('9876543210');
+  const [adminOtp, setAdminOtp] = useState('');
+  const [adminLoginStep, setAdminLoginStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
+  const [adminLoginError, setAdminLoginError] = useState<string | null>(null);
+  const [adminCooldown, setAdminCooldown] = useState(0);
 
   // Donors Tab State
   const [donors, setDonors] = useState<DonorProfile[]>([]);
@@ -72,6 +80,15 @@ export default function AdminDashboardPage() {
   const [isAuditLoading, setIsAuditLoading] = useState(false);
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Cooldown timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (adminCooldown > 0) {
+      timer = setTimeout(() => setAdminCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [adminCooldown]);
 
   // Load initial data
   const loadStats = async () => {
@@ -139,6 +156,63 @@ export default function AdminDashboardPage() {
     if (activeTab === 'REPORTS') loadReports();
     if (activeTab === 'AUDIT') loadAuditLogs();
   }, [activeTab]);
+
+  const normalizePhone = (num: string) => {
+    const cleaned = num.replace(/\D/g, '');
+    if (cleaned.length === 10) return `+91${cleaned}`;
+    if (cleaned.length === 12 && cleaned.startsWith('91')) return `+${cleaned}`;
+    if (num.startsWith('+91') && cleaned.length === 12) return num;
+    return `+91${cleaned}`;
+  };
+
+  // Direct Admin Login handlers
+  const handleSendAdminOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminLoginError(null);
+
+    const formatted = normalizePhone(adminPhone);
+    if (!/^\+91[6-9]\d{9}$/.test(formatted)) {
+      setAdminLoginError('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+
+    setIsAdminLoggingIn(true);
+    try {
+      const res = await api.sendOtp(formatted, 'LOGIN');
+      setAdminLoginStep('OTP');
+      setAdminCooldown(res.cooldown_seconds || 60);
+      if (res.debug_otp) {
+        setAdminOtp(res.debug_otp);
+      }
+    } catch (err: any) {
+      setAdminLoginError(err.message || 'Failed to send OTP.');
+    } finally {
+      setIsAdminLoggingIn(false);
+    }
+  };
+
+  const handleVerifyAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminLoginError(null);
+
+    if (adminOtp.trim().length !== 6) {
+      setAdminLoginError('Please enter a valid 6-digit OTP code');
+      return;
+    }
+
+    setIsAdminLoggingIn(true);
+    try {
+      const formatted = normalizePhone(adminPhone);
+      const loggedUser = await login(formatted, adminOtp.trim());
+      if (loggedUser.role !== 'ADMIN') {
+        setAdminLoginError(`Account signed in with role '${loggedUser.role}'. Administrator privileges required.`);
+      }
+    } catch (err: any) {
+      setAdminLoginError(err.message || 'Invalid or expired OTP code.');
+    } finally {
+      setIsAdminLoggingIn(false);
+    }
+  };
 
   // Handle donor status toggle
   const handleToggleDonorStatus = async (donor: DonorProfile) => {
@@ -223,20 +297,137 @@ export default function AdminDashboardPage() {
 
   if (!isAuthenticated || user?.role !== 'ADMIN') {
     return (
-      <div className="max-w-md mx-auto py-20 px-4 text-center space-y-4">
-        <div className="w-14 h-14 bg-purple-100 text-purple-700 rounded-2xl flex items-center justify-center mx-auto">
-          <ShieldAlert className="w-7 h-7" />
+      <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-800 to-indigo-900 p-8 text-white text-center relative">
+            <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs">
+              <ShieldAlert className="w-7 h-7 text-white" />
+            </div>
+            <h2 className="text-2xl font-black">Admin Operations Center</h2>
+            <p className="text-xs text-purple-200 mt-1">
+              Restricted portal for voluntary donor oversight, safety moderation, and platform statistics.
+            </p>
+          </div>
+
+          {/* Body */}
+          <div className="p-8 space-y-6">
+            {/* Quick Demo Hint */}
+            <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-2xl text-xs text-purple-900 space-y-1">
+              <div className="font-bold flex items-center justify-between">
+                <span>Default Admin Account:</span>
+                <span className="font-mono bg-purple-200/70 px-2 py-0.5 rounded text-[11px] font-black">+91 9876543210</span>
+              </div>
+              <p className="text-[11px] text-purple-700">
+                In development mode, enter <strong>9876543210</strong> and any 6-digit OTP to authenticate.
+              </p>
+            </div>
+
+            {adminLoginError && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-700">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{adminLoginError}</span>
+              </div>
+            )}
+
+            {adminLoginStep === 'PHONE' ? (
+              <form onSubmit={handleSendAdminOtp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Admin Mobile Number *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="9876543210"
+                      value={adminPhone.replace(/^\+91/, '')}
+                      onChange={(e) => setAdminPhone(e.target.value.replace(/\D/g, ''))}
+                      required
+                      autoFocus
+                      className="w-full pl-14 pr-4 py-3 text-sm border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAdminLoggingIn || adminPhone.length < 10}
+                  className="w-full py-3.5 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isAdminLoggingIn ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sending Admin OTP...
+                    </>
+                  ) : (
+                    'Request Admin Passcode'
+                  )}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyAdminLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Enter 6-Digit Admin Passcode
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="• • • • • •"
+                    value={adminOtp}
+                    onChange={(e) => setAdminOtp(e.target.value.replace(/\D/g, ''))}
+                    required
+                    autoFocus
+                    className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 border border-slate-300 rounded-xl font-mono text-slate-900 focus:ring-2 focus:ring-purple-600 outline-hidden"
+                  />
+                  <p className="text-[11px] text-slate-500 text-center mt-2">
+                    Passcode dispatched to +91 {adminPhone.replace(/^\+91/, '')}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setAdminLoginStep('PHONE')}
+                    className="text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
+                  >
+                    Change Number
+                  </button>
+                  {adminCooldown > 0 ? (
+                    <span className="text-slate-400">Resend in {adminCooldown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendAdminOtp}
+                      className="text-purple-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Resend Passcode
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAdminLoggingIn || adminOtp.length !== 6}
+                  className="w-full py-3.5 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isAdminLoggingIn ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Authenticating Admin...
+                    </>
+                  ) : (
+                    'Verify & Open Operations Center'
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
-        <h2 className="text-2xl font-black text-slate-900">Admin Authorization Required</h2>
-        <p className="text-xs text-slate-600 leading-relaxed">
-          This portal is restricted to authorized platform administrators for moderation and emergency oversight.
-        </p>
-        <button
-          onClick={openLoginModal}
-          className="px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer"
-        >
-          Sign In with Admin Mobile
-        </button>
       </div>
     );
   }
@@ -286,9 +477,11 @@ export default function AdminDashboardPage() {
               </span>
               <Heart className="w-4 h-4 text-red-500 fill-red-500" />
             </div>
-            <div className="text-2xl font-black text-slate-900">{stats?.total_donors || 0}</div>
+            <div className="text-2xl font-black text-slate-900">
+              {stats?.total_registered_donors ?? stats?.total_donors ?? 0}
+            </div>
             <span className="text-[11px] text-emerald-600 font-semibold">
-              {stats?.available_donors || 0} currently available
+              {stats?.available_donors ?? 0} currently available
             </span>
           </div>
 
@@ -299,9 +492,11 @@ export default function AdminDashboardPage() {
               </span>
               <Droplet className="w-4 h-4 text-rose-500 fill-rose-500" />
             </div>
-            <div className="text-2xl font-black text-slate-900">{stats?.total_requests || 0}</div>
+            <div className="text-2xl font-black text-slate-900">
+              {stats?.requests?.total ?? stats?.total_requests ?? 0}
+            </div>
             <span className="text-[11px] text-amber-600 font-semibold">
-              {stats?.pending_requests || 0} pending response
+              {stats?.requests?.pending ?? stats?.pending_requests ?? 0} pending response
             </span>
           </div>
 
@@ -312,7 +507,9 @@ export default function AdminDashboardPage() {
               </span>
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             </div>
-            <div className="text-2xl font-black text-slate-900">{stats?.accepted_requests || 0}</div>
+            <div className="text-2xl font-black text-slate-900">
+              {stats?.requests?.accepted ?? stats?.accepted_requests ?? 0}
+            </div>
             <span className="text-[11px] text-slate-500">Connections unlocked</span>
           </div>
 
@@ -323,7 +520,9 @@ export default function AdminDashboardPage() {
               </span>
               <Flag className="w-4 h-4 text-amber-500" />
             </div>
-            <div className="text-2xl font-black text-slate-900">{stats?.pending_reports || 0}</div>
+            <div className="text-2xl font-black text-slate-900">
+              {stats?.reports?.open ?? stats?.pending_reports ?? 0}
+            </div>
             <span className="text-[11px] text-red-600 font-semibold">
               Needs admin attention
             </span>
@@ -338,22 +537,13 @@ export default function AdminDashboardPage() {
               <span>Blood Groups Distribution (Registered Donors)</span>
             </div>
             <span className="text-xs font-bold text-slate-500">
-              Total: {stats?.total_donors || 0} Donors
+              Total: {stats?.total_registered_donors ?? stats?.total_donors ?? 0} Donors
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
             {BLOOD_GROUPS.map((bg) => {
-              const count = stats?.donors_by_blood_group?.[bg] ?? (
-                bg === 'O+' ? Math.round((stats?.total_donors || 148) * 0.35) :
-                bg === 'A+' ? Math.round((stats?.total_donors || 148) * 0.25) :
-                bg === 'B+' ? Math.round((stats?.total_donors || 148) * 0.20) :
-                bg === 'AB+' ? Math.round((stats?.total_donors || 148) * 0.08) :
-                bg === 'O-' ? Math.round((stats?.total_donors || 148) * 0.05) :
-                bg === 'A-' ? Math.round((stats?.total_donors || 148) * 0.03) :
-                bg === 'B-' ? Math.round((stats?.total_donors || 148) * 0.03) :
-                Math.round((stats?.total_donors || 148) * 0.01)
-              );
+              const count = stats?.donors_by_blood_group?.[bg] ?? 0;
               return (
                 <div key={bg} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-center">
                   <span className="block text-xs font-black text-red-600">{bg}</span>
@@ -401,9 +591,9 @@ export default function AdminDashboardPage() {
           >
             <Flag className="w-3.5 h-3.5" />
             Reports & Moderation
-            {(stats?.pending_reports ?? 0) > 0 && (
+            {(stats?.reports?.open ?? stats?.pending_reports ?? 0) > 0 && (
               <span className="px-1.5 py-0.2 bg-red-600 text-white rounded-full text-[10px] font-black">
-                {stats?.pending_reports}
+                {stats?.reports?.open ?? stats?.pending_reports}
               </span>
             )}
           </button>
@@ -495,67 +685,74 @@ export default function AdminDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {donors.map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-50/80">
-                        <td className="p-3 font-bold text-slate-900">{d.full_name}</td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded font-black bg-red-100 text-red-800">
-                            {d.blood_group}
-                          </span>
-                        </td>
-                        <td className="p-3 text-slate-600">
-                          {d.location?.name}
-                        </td>
-                        <td className="p-3 text-slate-800 font-mono text-xs">
-                          {d.user?.mobile_number || '—'}
-                        </td>
-                        <td className="p-3">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              d.user?.is_verified
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            <CheckCircle2 className="w-3 h-3" />
-                            {d.user?.is_verified ? 'Verified (OTP)' : 'Unverified'}
-                          </span>
-                        </td>
-                        <td className="p-3">
-                          <button
-                            onClick={() => handleToggleDonorAvailability(d)}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                              d.is_available
-                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                            }`}
-                          >
-                            {d.is_available ? 'Available' : 'Cooldown'}
-                          </button>
-                        </td>
-                        <td className="p-3">
-                          <button
-                            onClick={() => handleToggleDonorStatus(d)}
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                              d.user?.is_active
-                                ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                                : 'bg-red-100 text-red-800 hover:bg-red-200'
-                            }`}
-                          >
-                            {d.user?.is_active ? 'Active' : 'Suspended'}
-                          </button>
-                        </td>
-                        <td className="p-3 text-right">
-                          <button
-                            onClick={() => setDeleteDonorTarget(d)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                            title="Remove fake / inappropriate donor"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {donors.map((d) => {
+                      const donorName = d.name || d.full_name || 'Donor';
+                      const donorMobile = d.mobile || d.user?.mobile || d.user?.mobile_number || '—';
+                      const isVerified = d.is_otp_verified ?? d.user?.is_verified ?? true;
+                      const isActive = d.is_active ?? d.user?.is_active ?? true;
+
+                      return (
+                        <tr key={d.id} className="hover:bg-slate-50/80">
+                          <td className="p-3 font-bold text-slate-900">{donorName}</td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 rounded font-black bg-red-100 text-red-800">
+                              {d.blood_group}
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-600">
+                            {d.location?.name || '—'}
+                          </td>
+                          <td className="p-3 text-slate-800 font-mono text-xs">
+                            {donorMobile}
+                          </td>
+                          <td className="p-3">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                isVerified
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              {isVerified ? 'Verified (OTP)' : 'Unverified'}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => handleToggleDonorAvailability(d)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                                d.is_available
+                                  ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              }`}
+                            >
+                              {d.is_available ? 'Available' : 'Cooldown'}
+                            </button>
+                          </td>
+                          <td className="p-3">
+                            <button
+                              onClick={() => handleToggleDonorStatus(d)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
+                                isActive
+                                  ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                                  : 'bg-red-100 text-red-800 hover:bg-red-200'
+                              }`}
+                            >
+                              {isActive ? 'Active' : 'Suspended'}
+                            </button>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              onClick={() => setDeleteDonorTarget(d)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                              title="Remove fake / inappropriate donor"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -696,17 +893,23 @@ export default function AdminDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {auditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50/80">
-                        <td className="p-3 text-slate-500">{new Date(log.created_at).toLocaleString()}</td>
-                        <td className="p-3 font-bold">Admin #{log.admin_id}</td>
-                        <td className="p-3 font-mono text-purple-700">{log.action_type}</td>
-                        <td className="p-3">
-                          {log.target_type} #{log.target_id}
-                        </td>
-                        <td className="p-3 text-slate-600">{log.reason || '—'}</td>
-                      </tr>
-                    ))}
+                    {auditLogs.map((log) => {
+                      const adminDisplayName = log.admin_name || (log.admin_id ? `Admin #${log.admin_id}` : 'System');
+                      const actionName = log.action || log.action_type || 'ADMIN_ACTION';
+                      const detailsText = log.details?.reason || (log.details ? (typeof log.details === 'object' ? JSON.stringify(log.details) : log.details) : log.reason || '—');
+
+                      return (
+                        <tr key={log.id} className="hover:bg-slate-50/80">
+                          <td className="p-3 text-slate-500">{new Date(log.created_at).toLocaleString()}</td>
+                          <td className="p-3 font-bold">{adminDisplayName}</td>
+                          <td className="p-3 font-mono text-purple-700">{actionName}</td>
+                          <td className="p-3">
+                            {log.target_type} #{log.target_id}
+                          </td>
+                          <td className="p-3 text-slate-600">{detailsText}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -786,7 +989,7 @@ export default function AdminDashboardPage() {
 
             <form onSubmit={handleDeleteDonor} className="p-6 space-y-4">
               <p className="text-xs text-slate-700">
-                Are you sure you want to permanently remove donor <strong>{deleteDonorTarget.full_name}</strong>? This action will be logged in the audit trail.
+                Are you sure you want to permanently remove donor <strong>{deleteDonorTarget.name || deleteDonorTarget.full_name}</strong>? This action will be logged in the audit trail.
               </p>
 
               <div>

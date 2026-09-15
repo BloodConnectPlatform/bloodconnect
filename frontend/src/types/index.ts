@@ -38,15 +38,21 @@ export interface DonorProfile {
   user_id: string | number;
   full_name?: string;
   name?: string;
+  mobile?: string;
   blood_group: BloodGroup;
   gender?: Gender;
   date_of_birth: string;
   age?: number;
-  location_id: number;
+  location_id?: number;
   is_available: boolean;
+  is_active?: boolean;
+  is_otp_verified?: boolean;
+  contact_consent?: boolean;
   last_donated_at?: string;
   total_donations?: number;
+  reports_count?: number;
   created_at: string;
+  updated_at?: string;
   location: LocationItem;
   user?: User;
 }
@@ -112,14 +118,30 @@ export interface ReportItem {
 }
 
 export interface AdminStats {
-  total_users: number;
-  total_donors: number;
+  total_registered_donors?: number;
+  total_donors?: number;
+  total_users?: number;
   available_donors: number;
-  total_requests: number;
-  pending_requests: number;
-  accepted_requests: number;
-  total_reports: number;
-  pending_reports: number;
+  active_donors?: number;
+  verified_donors?: number;
+  requests?: {
+    pending: number;
+    accepted: number;
+    rejected: number;
+    total: number;
+  };
+  reports?: {
+    open: number;
+    reviewing: number;
+    resolved: number;
+    dismissed: number;
+    total: number;
+  };
+  total_requests?: number;
+  pending_requests?: number;
+  accepted_requests?: number;
+  total_reports?: number;
+  pending_reports?: number;
   donors_by_blood_group?: Record<string, number>;
   donors_by_location?: Record<string, number>;
 }

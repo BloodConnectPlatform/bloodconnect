@@ -64,7 +64,7 @@ export default function DonorDashboardPage() {
 
       if (data.profile) {
         setEditName(data.profile.full_name || data.profile.name || '');
-        setEditLocationId(data.profile.location_id);
+        setEditLocationId(data.profile.location_id ?? data.profile.location?.id ?? '');
       }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to load dashboard data.' });

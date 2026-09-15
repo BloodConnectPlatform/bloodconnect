@@ -58,6 +58,9 @@ export default function LoginPage() {
       const res = await api.sendOtp(formatted, 'LOGIN');
       setStep('OTP');
       setCooldown(res.cooldown_seconds || 60);
+      if (res.debug_otp) {
+        setOtpCode(res.debug_otp);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP.');
     } finally {
@@ -114,16 +117,53 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="p-8">
+        <div className="p-8 space-y-5">
+          {/* Demo Hint */}
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-[11px] text-slate-600 space-y-1">
+            <div className="font-bold text-slate-800">Demo Test Accounts:</div>
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileNumber('9876543210');
+                  setFullName('System Administrator');
+                }}
+                className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-bold hover:bg-purple-200 cursor-pointer"
+              >
+                Admin (9876543210)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileNumber('9876543220');
+                  setFullName('Priya Sharma');
+                }}
+                className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold hover:bg-rose-200 cursor-pointer"
+              >
+                Requester (9876543220)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileNumber('9876543201');
+                  setFullName('Arun Kumar');
+                }}
+                className="px-2 py-0.5 bg-red-100 text-red-800 rounded font-bold hover:bg-red-200 cursor-pointer"
+              >
+                Donor (9876543201)
+              </button>
+            </div>
+          </div>
+
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-700">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-700">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {step === 'PHONE' ? (
-            <form onSubmit={handleSendOtp} className="space-y-5">
+            <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Full Name (Required for new requesters)
