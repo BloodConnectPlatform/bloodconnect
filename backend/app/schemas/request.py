@@ -8,8 +8,12 @@ from app.schemas.donor import LocationResponse
 
 class CreateBloodRequest(BaseModel):
     donor_id: uuid.UUID = Field(..., description="Target donor profile ID")
-    blood_group: BloodGroup = Field(..., description="Required blood group")
-    location_id: int = Field(..., description="Donation hospital / clinic location ID")
+    blood_group: Optional[BloodGroup] = Field(None, description="Required blood group (defaults to donor's blood group if omitted)")
+    location_id: Optional[int] = Field(None, description="Donation hospital / clinic location ID (defaults to donor's location if omitted)")
+    patient_name: Optional[str] = Field(None, description="Patient full name")
+    hospital_name: Optional[str] = Field(None, description="Hospital name & city")
+    required_units: Optional[int] = Field(1, description="Required units")
+    urgency: Optional[str] = Field("HIGH", description="Urgency level")
     message: Optional[str] = Field(None, max_length=500, description="Optional note for the donor (e.g. hospital name, urgency)")
 
 

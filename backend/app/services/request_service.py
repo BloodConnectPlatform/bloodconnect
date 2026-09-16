@@ -56,14 +56,16 @@ class RequestService:
             )
 
         # 3. Blood group verification
-        if donor.blood_group != data.blood_group:
+        req_blood_group = data.blood_group if data.blood_group is not None else donor.blood_group
+        if donor.blood_group != req_blood_group:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Requested blood group ({data.blood_group.value}) does not match donor's blood group ({donor.blood_group.value})."
+                detail=f"Requested blood group ({req_blood_group.value}) does not match donor's blood group ({donor.blood_group.value})."
             )
 
         # 4. Location verification
-        loc_stmt = select(Location).where(Location.id == data.location_id, Location.is_active.is_(True))
+        req_location_id = data.location_id if data.location_id is not None else donor.location_id
+        loc_stmt = select(Location).where(Location.id == req_location_id, Location.is_active.is_(True))
         loc_res = await db.execute(loc_stmt)
         location = loc_res.scalar_one_or_none()
         if not location:
@@ -72,26 +74,41 @@ class RequestService:
                 detail="Invalid or inactive donation location selected."
             )
 
-        # 5. Create BloodRequest entity
+        # 5. Build Unified Message from patient/hospital/urgency/message fields
+        details = []
+        if data.patient_name:
+            details.append(f"Patient: {data.patient_name}")
+        if data.hospital_name:
+            details.append(f"Hospital: {data.hospital_name}")
+        if data.required_units and data.required_units > 1:
+            details.append(f"Units: {data.required_units}")
+        if data.urgency:
+            details.append(f"Urgency: {data.urgency}")
+        if data.message:
+            details.append(f"Notes: {data.message}")
+
+        full_message = " | ".join(details) if details else (data.message.strip() if data.message else None)
+
+        # 6. Create BloodRequest entity
         blood_request = BloodRequest(
             requester_id=requester.id,
             donor_id=donor.id,
-            blood_group=data.blood_group,
-            location_id=data.location_id,
-            message=data.message.strip() if data.message else None,
+            blood_group=req_blood_group,
+            location_id=req_location_id,
+            message=full_message,
             status=RequestStatus.PENDING,
             created_at=datetime.now(timezone.utc)
         )
         db.add(blood_request)
         await db.flush()
 
-        # 6. Notify the Donor User
+        # 7. Notify the Donor User
         await notification_service.create_notification(
             db=db,
             user_id=donor.user_id,
             type=NotificationType.REQUEST_RECEIVED,
             title="New Blood Donation Request",
-            message=f"You have received an urgent {data.blood_group.value} blood request in {location.name}."
+            message=f"You have received an urgent {req_blood_group.value} blood request in {location.name}."
         )
 
         await db.commit()

@@ -227,6 +227,8 @@ function FindDonorContent() {
         required_units: Number(requiredUnits),
         urgency,
         message: message.trim() || undefined,
+        blood_group: requestModalDonor.blood_group,
+        location_id: requestModalDonor.location?.id,
       });
       setRequestStep('SUCCESS');
     } catch (err: any) {
@@ -260,6 +262,8 @@ function FindDonorContent() {
         required_units: Number(requiredUnits),
         urgency,
         message: message.trim() || undefined,
+        blood_group: requestModalDonor.blood_group,
+        location_id: requestModalDonor.location?.id,
       });
 
       setRequestStep('SUCCESS');

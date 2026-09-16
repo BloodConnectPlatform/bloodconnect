@@ -78,6 +78,12 @@ async def get_request_by_id(
     summary="Accept a blood request",
     description="Donor accepts a pending blood request, unlocking requester contact information for coordination."
 )
+@router.post(
+    "/{request_id}/accept",
+    response_model=BloodRequestResponse,
+    summary="Accept a blood request (POST alias)",
+    include_in_schema=False
+)
 async def accept_request(
     request_id: uuid.UUID,
     current_user: User = Depends(require_donor),
@@ -91,6 +97,12 @@ async def accept_request(
     response_model=BloodRequestResponse,
     summary="Reject / Decline a blood request",
     description="Donor declines a pending blood request. State is updated to REJECTED."
+)
+@router.post(
+    "/{request_id}/reject",
+    response_model=BloodRequestResponse,
+    summary="Reject / Decline a blood request (POST alias)",
+    include_in_schema=False
 )
 async def reject_request(
     request_id: uuid.UUID,
