@@ -89,6 +89,9 @@ export default function DonorRegistrationPage() {
       const res = await api.sendOtp(formatted, 'DONOR_REGISTRATION');
       setStep(2);
       setCooldown(res.cooldown_seconds || 60);
+      if (res.debug_otp) {
+        setOtpCode(res.debug_otp);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to send OTP.');
     } finally {

@@ -187,6 +187,9 @@ function FindDonorContent() {
       const res = await api.sendOtp(formatted, 'REQUESTER_VERIFICATION');
       setRequestStep('OTP');
       setOtpCooldown(res.cooldown_seconds || 60);
+      if (res.debug_otp) {
+        setRequesterOtp(res.debug_otp);
+      }
     } catch (err: any) {
       setRequestError(err.message || 'Failed to send OTP. Please try again.');
     } finally {
