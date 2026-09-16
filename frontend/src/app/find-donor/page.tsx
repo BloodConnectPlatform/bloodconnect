@@ -775,7 +775,7 @@ function FindDonorContent() {
                             placeholder="e.g. Anand Kumar"
                             value={requesterName}
                             onChange={(e) => setRequesterName(e.target.value)}
-                            className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium"
+                            className="w-full px-3 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400"
                           />
                         </div>
 
@@ -784,7 +784,7 @@ function FindDonorContent() {
                             Your Mobile Number *
                           </label>
                           <div className="relative">
-                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
                               +91
                             </span>
                             <input
@@ -794,7 +794,7 @@ function FindDonorContent() {
                               placeholder="9876543210"
                               value={requesterMobile.replace(/^\+91/, '')}
                               onChange={(e) => setRequesterMobile(e.target.value.replace(/\D/g, ''))}
-                              className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-bold"
+                              className="w-full pl-9 pr-3 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-bold placeholder:text-slate-400"
                             />
                           </div>
                         </div>
@@ -822,7 +822,7 @@ function FindDonorContent() {
                           placeholder="e.g. K. Ramesh"
                           value={patientName}
                           onChange={(e) => setPatientName(e.target.value)}
-                          className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium"
+                          className="w-full px-3.5 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400"
                         />
                       </div>
 
@@ -837,7 +837,7 @@ function FindDonorContent() {
                           required
                           value={requiredUnits}
                           onChange={(e) => setRequiredUnits(parseInt(e.target.value) || 1)}
-                          className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium"
+                          className="w-full px-3.5 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium"
                         />
                       </div>
                     </div>
@@ -852,7 +852,7 @@ function FindDonorContent() {
                         placeholder="e.g. KMCH Hospital, Avinashi Road, Coimbatore"
                         value={hospitalName}
                         onChange={(e) => setHospitalName(e.target.value)}
-                        className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium"
+                        className="w-full px-3.5 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400"
                       />
                     </div>
 
@@ -891,7 +891,7 @@ function FindDonorContent() {
                         placeholder="Doctor name, ward number, or emergency details..."
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium"
+                        className="w-full px-3.5 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -978,7 +978,7 @@ function FindDonorContent() {
                     <select
                       value={reportReason}
                       onChange={(e) => setReportReason(e.target.value as ReportReason)}
-                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-800"
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
                     >
                       <option value="INCORRECT_INFORMATION">Incorrect Information</option>
                       <option value="FAKE_PROFILE">Fake Profile</option>
@@ -998,7 +998,7 @@ function FindDonorContent() {
                       placeholder="Please explain the issue..."
                       value={reportDescription}
                       onChange={(e) => setReportDescription(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl"
+                      className="w-full px-3 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400"
                     />
                   </div>
 

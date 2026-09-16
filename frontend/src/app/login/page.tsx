@@ -175,7 +175,7 @@ export default function LoginPage() {
                     placeholder="e.g. Ramesh Kumar"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 text-sm border border-slate-300 rounded-xl font-medium text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
+                    className="w-full pl-11 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-red-500 outline-hidden placeholder:text-slate-400"
                   />
                 </div>
               </div>
@@ -196,7 +196,7 @@ export default function LoginPage() {
                     onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
                     required
                     autoFocus
-                    className="w-full pl-14 pr-4 py-3 text-sm border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
+                    className="w-full pl-14 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-red-500 outline-hidden placeholder:text-slate-400"
                   />
                 </div>
               </div>
@@ -242,7 +242,7 @@ export default function LoginPage() {
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   required
                   autoFocus
-                  className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 border border-slate-300 rounded-xl font-mono text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
+                  className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 text-slate-900 bg-white border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-red-500 outline-hidden placeholder:text-slate-400"
                 />
               </div>
 

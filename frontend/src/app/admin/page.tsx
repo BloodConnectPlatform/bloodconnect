@@ -348,7 +348,7 @@ export default function AdminDashboardPage() {
                       onChange={(e) => setAdminPhone(e.target.value.replace(/\D/g, ''))}
                       required
                       autoFocus
-                      className="w-full pl-14 pr-4 py-3 text-sm border border-slate-300 rounded-xl font-bold text-slate-900 focus:ring-2 focus:ring-purple-600 outline-hidden"
+                      className="w-full pl-14 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
                     />
                   </div>
                 </div>
@@ -382,7 +382,7 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setAdminOtp(e.target.value.replace(/\D/g, ''))}
                     required
                     autoFocus
-                    className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 border border-slate-300 rounded-xl font-mono text-slate-900 focus:ring-2 focus:ring-purple-600 outline-hidden"
+                    className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 text-slate-900 bg-white border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
                   />
                   <p className="text-[11px] text-slate-500 text-center mt-2">
                     Passcode dispatched to +91 {adminPhone.replace(/^\+91/, '')}
@@ -624,7 +624,7 @@ export default function AdminDashboardPage() {
                   value={donorSearch}
                   onChange={(e) => setDonorSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && loadDonors()}
-                  className="w-full pl-9 pr-4 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-hidden font-medium"
+                  className="w-full pl-9 pr-4 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-hidden font-medium placeholder:text-slate-400"
                 />
               </div>
 
@@ -634,7 +634,7 @@ export default function AdminDashboardPage() {
                   setDonorFilterGroup(e.target.value);
                   loadDonors();
                 }}
-                className="px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                className="px-3 py-2 text-xs text-slate-900 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-purple-600 outline-hidden cursor-pointer"
               >
                 <option value="">All Blood Groups</option>
                 {BLOOD_GROUPS.map((bg) => (
@@ -650,7 +650,7 @@ export default function AdminDashboardPage() {
                   setDonorFilterLocation(e.target.value);
                   loadDonors();
                 }}
-                className="px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl font-medium"
+                className="px-3 py-2 text-xs text-slate-900 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-purple-600 outline-hidden cursor-pointer"
               >
                 <option value="">All Locations</option>
                 {locations.map((loc) => (
@@ -935,7 +935,7 @@ export default function AdminDashboardPage() {
                 <select
                   value={reportActionStatus}
                   onChange={(e) => setReportActionStatus(e.target.value as ReportStatus)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs text-slate-900 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-purple-600 outline-hidden cursor-pointer"
                 >
                   <option value="RESOLVED">RESOLVED (Action taken)</option>
                   <option value="INVESTIGATING">INVESTIGATING (Under review)</option>
@@ -951,7 +951,7 @@ export default function AdminDashboardPage() {
                   placeholder="Explain resolution details..."
                   value={resolutionNotes}
                   onChange={(e) => setResolutionNotes(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-hidden font-medium placeholder:text-slate-400"
                 />
               </div>
 
@@ -966,7 +966,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={isHandlingReport}
-                  className="px-4 py-2 bg-purple-700 text-white text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-purple-700 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {isHandlingReport ? 'Saving...' : 'Save Resolution'}
                 </button>
@@ -1000,7 +1000,7 @@ export default function AdminDashboardPage() {
                   placeholder="Reason for deletion..."
                   value={deleteReason}
                   onChange={(e) => setDeleteReason(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400"
                 />
               </div>
 

@@ -208,7 +208,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     placeholder="e.g. Anand Kumar"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
+                    className="w-full pl-9 pr-4 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
                   />
                 </div>
               </div>
@@ -228,7 +228,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     value={mobileNumber.replace(/^\+91/, '')}
                     onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
                     required
-                    className="w-full pl-12 pr-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
+                    className="w-full pl-12 pr-4 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5">
@@ -281,7 +281,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                   required
                   autoFocus
-                  className="w-full text-center tracking-[0.5em] text-lg font-bold py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-sm text-slate-800"
+                  className="w-full text-center tracking-[0.5em] text-lg font-bold py-2.5 text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:tracking-normal placeholder:font-normal placeholder:text-sm placeholder:text-slate-400"
                 />
               </div>
 

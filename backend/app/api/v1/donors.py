@@ -28,6 +28,12 @@ router = APIRouter(prefix="/donors", tags=["Donors"])
     summary="Register a new blood donor",
     description="Registers a new donor user after validating OTP/verification token, age, blood group, and location."
 )
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
+)
 async def register_donor(
     request: DonorRegisterRequest,
     db: AsyncSession = Depends(get_db)
@@ -92,6 +98,11 @@ async def update_my_donor_profile(
     summary="Toggle blood donation availability",
     description="Quickly set donor status as available or unavailable for urgent blood requests."
 )
+@router.patch(
+    "/me/availability",
+    response_model=DonorProfileResponse,
+    include_in_schema=False,
+)
 async def toggle_availability(
     request: DonorAvailabilityUpdateRequest,
     current_user: User = Depends(require_donor),
@@ -105,6 +116,11 @@ async def toggle_availability(
     response_model=DonorDashboardResponse,
     summary="Get donor dashboard summary",
     description="Returns donor profile details, aggregate request statistics, and recent received requests."
+)
+@router.get(
+    "/me/dashboard",
+    response_model=DonorDashboardResponse,
+    include_in_schema=False,
 )
 async def get_donor_dashboard(
     current_user: User = Depends(require_donor),

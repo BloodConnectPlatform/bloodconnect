@@ -48,9 +48,11 @@ origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if origins else ["*"],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include API v1 Router

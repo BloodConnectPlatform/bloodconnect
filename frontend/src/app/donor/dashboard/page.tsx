@@ -533,7 +533,7 @@ export default function DonorDashboardPage() {
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-red-500 outline-hidden placeholder:text-slate-400"
                 />
               </div>
 
@@ -542,7 +542,7 @@ export default function DonorDashboardPage() {
                 <select
                   value={editLocationId}
                   onChange={(e) => setEditLocationId(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl"
+                  className="w-full px-3 py-2 text-xs text-slate-900 bg-slate-50 border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
                 >
                   {locations.map((loc) => (
                     <option key={loc.id} value={loc.id}>

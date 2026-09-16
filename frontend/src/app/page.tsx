@@ -221,7 +221,7 @@ export default function HomePage() {
                         <select
                           value={locationQuery}
                           onChange={(e) => setLocationQuery(e.target.value)}
-                          className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all cursor-pointer"
+                          className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all cursor-pointer"
                         >
                           <option value="">All Locations / Areas</option>
                           {locations.map((loc) => (

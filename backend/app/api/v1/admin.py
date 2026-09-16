@@ -193,6 +193,11 @@ async def update_report(
     summary="Platform aggregate statistics",
     description="Computes real-time counts of donors by blood group, donors by location, request lifecycle metrics, and open reports."
 )
+@router.get(
+    "/stats",
+    response_model=AdminStatisticsResponse,
+    include_in_schema=False,
+)
 async def get_statistics(
     current_admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db)

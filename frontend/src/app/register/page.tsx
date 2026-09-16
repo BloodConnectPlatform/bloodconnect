@@ -377,7 +377,7 @@ export default function DonorRegistrationPage() {
                     placeholder="e.g. S. Karthik"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-3 text-sm border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-red-500 outline-hidden"
+                    className="w-full px-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-red-500 outline-hidden"
                   />
                 </div>
 
@@ -390,7 +390,7 @@ export default function DonorRegistrationPage() {
                     <select
                       value={bloodGroup}
                       onChange={(e) => setBloodGroup(e.target.value as BloodGroup)}
-                      className="w-full px-4 py-3 text-sm font-bold bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden"
+                      className="w-full px-4 py-3 text-sm font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
                     >
                       {BLOOD_GROUPS.map((bg) => (
                         <option key={bg} value={bg}>
@@ -407,7 +407,7 @@ export default function DonorRegistrationPage() {
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value as Gender)}
-                      className="w-full px-4 py-3 text-sm font-medium bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden"
+                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
                     >
                       <option value="MALE">Male</option>
                       <option value="FEMALE">Female</option>
@@ -427,7 +427,7 @@ export default function DonorRegistrationPage() {
                       required
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="w-full px-4 py-3 text-sm font-medium border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden"
+                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
                     />
                   </div>
 
@@ -438,7 +438,7 @@ export default function DonorRegistrationPage() {
                     <select
                       value={locationId}
                       onChange={(e) => setLocationId(Number(e.target.value))}
-                      className="w-full px-4 py-3 text-sm font-medium bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden"
+                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
                     >
                       {locations.map((loc) => (
                         <option key={loc.id} value={loc.id}>
