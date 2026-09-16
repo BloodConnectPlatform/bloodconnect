@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.blood_request import BloodRequest
@@ -55,7 +55,28 @@ class RequestService:
                 detail="You cannot send a blood donation request to yourself."
             )
 
-        # 3. Blood group verification
+        # 3. Prevent duplicate active request for the SAME patient
+        clean_patient_name = data.patient_name.strip() if data.patient_name else None
+        if clean_patient_name:
+            dup_stmt = (
+                select(BloodRequest)
+                .where(
+                    BloodRequest.requester_id == requester.id,
+                    BloodRequest.donor_id == donor.id,
+                    func.lower(BloodRequest.patient_name) == clean_patient_name.lower(),
+                    BloodRequest.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED])
+                )
+                .limit(1)
+            )
+            dup_res = await db.execute(dup_stmt)
+            existing_dup = dup_res.scalar_one_or_none()
+            if existing_dup:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"You have already sent an active blood request to {donor.user.name} for patient '{clean_patient_name}'. You can request other donors or request this donor for a different patient."
+                )
+
+        # 4. Blood group verification
         req_blood_group = data.blood_group if data.blood_group is not None else donor.blood_group
         if donor.blood_group != req_blood_group:
             raise HTTPException(
@@ -63,7 +84,7 @@ class RequestService:
                 detail=f"Requested blood group ({req_blood_group.value}) does not match donor's blood group ({donor.blood_group.value})."
             )
 
-        # 4. Location verification
+        # 5. Location verification
         req_location_id = data.location_id if data.location_id is not None else donor.location_id
         loc_stmt = select(Location).where(Location.id == req_location_id, Location.is_active.is_(True))
         loc_res = await db.execute(loc_stmt)
@@ -74,7 +95,7 @@ class RequestService:
                 detail="Invalid or inactive donation location selected."
             )
 
-        # 5. Build Unified Message from patient/hospital/urgency/message fields
+        # 6. Build Unified Message from patient/hospital/urgency/message fields
         details = []
         if data.patient_name:
             details.append(f"Patient: {data.patient_name}")
@@ -89,12 +110,14 @@ class RequestService:
 
         full_message = " | ".join(details) if details else (data.message.strip() if data.message else None)
 
-        # 6. Create BloodRequest entity
+        # 7. Create BloodRequest entity
         blood_request = BloodRequest(
             requester_id=requester.id,
             donor_id=donor.id,
             blood_group=req_blood_group,
             location_id=req_location_id,
+            patient_name=clean_patient_name,
+            hospital_name=data.hospital_name.strip() if data.hospital_name else None,
             message=full_message,
             status=RequestStatus.PENDING,
             created_at=datetime.now(timezone.utc)
@@ -102,7 +125,7 @@ class RequestService:
         db.add(blood_request)
         await db.flush()
 
-        # 7. Notify the Donor User
+        # 8. Notify the Donor User
         await notification_service.create_notification(
             db=db,
             user_id=donor.user_id,
@@ -121,6 +144,8 @@ class RequestService:
             donor_id=blood_request.donor_id,
             blood_group=blood_request.blood_group,
             location=LocationResponse.model_validate(blood_request.location),
+            patient_name=blood_request.patient_name,
+            hospital_name=blood_request.hospital_name,
             message=blood_request.message,
             status=blood_request.status,
             created_at=blood_request.created_at,
@@ -159,6 +184,8 @@ class RequestService:
                     id=req.id,
                     blood_group=req.blood_group,
                     location=LocationResponse.model_validate(req.location),
+                    patient_name=req.patient_name,
+                    hospital_name=req.hospital_name,
                     status=req.status,
                     message=req.message,
                     created_at=req.created_at,
@@ -205,6 +232,8 @@ class RequestService:
                     id=req.id,
                     blood_group=req.blood_group,
                     location=LocationResponse.model_validate(req.location),
+                    patient_name=req.patient_name,
+                    hospital_name=req.hospital_name,
                     status=req.status,
                     message=req.message,
                     created_at=req.created_at,
@@ -257,6 +286,8 @@ class RequestService:
             donor_id=req.donor_id,
             blood_group=req.blood_group,
             location=LocationResponse.model_validate(req.location),
+            patient_name=req.patient_name,
+            hospital_name=req.hospital_name,
             message=req.message,
             status=req.status,
             created_at=req.created_at,
@@ -325,6 +356,8 @@ class RequestService:
             donor_id=req.donor_id,
             blood_group=req.blood_group,
             location=LocationResponse.model_validate(req.location),
+            patient_name=req.patient_name,
+            hospital_name=req.hospital_name,
             message=req.message,
             status=req.status,
             created_at=req.created_at,
@@ -393,6 +426,8 @@ class RequestService:
             donor_id=req.donor_id,
             blood_group=req.blood_group,
             location=LocationResponse.model_validate(req.location),
+            patient_name=req.patient_name,
+            hospital_name=req.hospital_name,
             message=req.message,
             status=req.status,
             created_at=req.created_at,

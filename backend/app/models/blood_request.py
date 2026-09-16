@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text, Uuid
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, UUIDPrimaryKeyMixin
 from app.models.enums import BloodGroup, RequestStatus
@@ -36,6 +36,8 @@ class BloodRequest(Base, UUIDPrimaryKeyMixin):
         ForeignKey("locations.id", ondelete="RESTRICT"),
         nullable=False
     )
+    patient_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    hospital_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[RequestStatus] = mapped_column(
         Enum(RequestStatus, name="request_status_enum", native_enum=False),

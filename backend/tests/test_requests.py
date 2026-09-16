@@ -319,3 +319,120 @@ async def test_notifications_mark_read_and_mark_all_read(
     # 3. Verify unread count is 0
     final_notifs = await client.get("/api/v1/notifications", headers=donor_headers)
     assert final_notifs.json()["unread_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_duplicate_blood_request_same_patient_forbidden(
+    client: AsyncClient, setup_users_and_donor
+):
+    """Test requester cannot send duplicate active request to the same donor for the same patient."""
+    data = setup_users_and_donor
+    req_headers = {"Authorization": f"Bearer {data['req1_token']}"}
+
+    payload = {
+        "donor_id": str(data["donor_profile"].id),
+        "blood_group": "O+",
+        "location_id": data["location"].id,
+        "patient_name": "Ramesh Kumar",
+        "hospital_name": "KMCH Hospital",
+        "required_units": 2,
+        "urgency": "Urgent"
+    }
+
+    # First request -> Success (201)
+    res1 = await client.post("/api/v1/requests", headers=req_headers, json=payload)
+    assert res1.status_code == 201
+    assert res1.json()["patient_name"] == "Ramesh Kumar"
+    assert res1.json()["hospital_name"] == "KMCH Hospital"
+
+    # Duplicate request for same patient (with case insensitivity and whitespace tolerance) -> 400 Bad Request
+    payload_dup = {
+        "donor_id": str(data["donor_profile"].id),
+        "blood_group": "O+",
+        "location_id": data["location"].id,
+        "patient_name": "  ramesh kumar  ",
+        "hospital_name": "KMCH Hospital"
+    }
+    res2 = await client.post("/api/v1/requests", headers=req_headers, json=payload_dup)
+    assert res2.status_code == 400
+    assert "already sent an active blood request" in res2.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_blood_request_different_patient_same_donor_allowed(
+    client: AsyncClient, setup_users_and_donor
+):
+    """Test requester CAN request the same donor for a different patient."""
+    data = setup_users_and_donor
+    req_headers = {"Authorization": f"Bearer {data['req1_token']}"}
+
+    # 1. Request for Patient A
+    res1 = await client.post(
+        "/api/v1/requests",
+        headers=req_headers,
+        json={
+            "donor_id": str(data["donor_profile"].id),
+            "blood_group": "O+",
+            "location_id": data["location"].id,
+            "patient_name": "Patient Alpha",
+            "hospital_name": "Apollo Hospital"
+        }
+    )
+    assert res1.status_code == 201
+
+    # 2. Request for Patient B to the same donor -> Must be allowed (201)
+    res2 = await client.post(
+        "/api/v1/requests",
+        headers=req_headers,
+        json={
+            "donor_id": str(data["donor_profile"].id),
+            "blood_group": "O+",
+            "location_id": data["location"].id,
+            "patient_name": "Patient Beta",
+            "hospital_name": "Ganga Hospital"
+        }
+    )
+    assert res2.status_code == 201
+    assert res2.json()["patient_name"] == "Patient Beta"
+
+
+@pytest.mark.asyncio
+async def test_blood_request_same_patient_allowed_after_rejection(
+    client: AsyncClient, setup_users_and_donor
+):
+    """Test requester can request donor again for same patient if previous request was REJECTED."""
+    data = setup_users_and_donor
+    req_headers = {"Authorization": f"Bearer {data['req1_token']}"}
+    donor_headers = {"Authorization": f"Bearer {data['donor_token']}"}
+
+    # 1. First request
+    res1 = await client.post(
+        "/api/v1/requests",
+        headers=req_headers,
+        json={
+            "donor_id": str(data["donor_profile"].id),
+            "blood_group": "O+",
+            "location_id": data["location"].id,
+            "patient_name": "Patient Gamma"
+        }
+    )
+    assert res1.status_code == 201
+    request_id = res1.json()["id"]
+
+    # 2. Donor rejects it
+    res_reject = await client.patch(f"/api/v1/requests/{request_id}/reject", headers=donor_headers)
+    assert res_reject.status_code == 200
+
+    # 3. Requester sends another request for the same patient to the same donor -> Allowed (201)
+    res2 = await client.post(
+        "/api/v1/requests",
+        headers=req_headers,
+        json={
+            "donor_id": str(data["donor_profile"].id),
+            "blood_group": "O+",
+            "location_id": data["location"].id,
+            "patient_name": "Patient Gamma"
+        }
+    )
+    assert res2.status_code == 201
+

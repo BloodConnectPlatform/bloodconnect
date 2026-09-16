@@ -23,6 +23,8 @@ class BloodRequestResponse(BaseModel):
     donor_id: uuid.UUID
     blood_group: BloodGroup
     location: LocationResponse
+    patient_name: Optional[str] = None
+    hospital_name: Optional[str] = None
     message: Optional[str] = None
     status: RequestStatus
     created_at: datetime
@@ -45,6 +47,8 @@ class SentRequestSummary(BaseModel):
     id: uuid.UUID
     blood_group: BloodGroup
     location: LocationResponse
+    patient_name: Optional[str] = None
+    hospital_name: Optional[str] = None
     status: RequestStatus
     message: Optional[str] = None
     created_at: datetime
@@ -62,6 +66,8 @@ class ReceivedRequestSummary(BaseModel):
     id: uuid.UUID
     blood_group: BloodGroup
     location: LocationResponse
+    patient_name: Optional[str] = None
+    hospital_name: Optional[str] = None
     status: RequestStatus
     message: Optional[str] = None
     created_at: datetime
