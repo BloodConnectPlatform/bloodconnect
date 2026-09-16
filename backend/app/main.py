@@ -9,6 +9,7 @@ from app.api.v1.router import api_router
 from app.database.session import engine, AsyncSessionLocal
 from app.database.base import Base
 from app.seeds.locations import seed_locations
+from app.database.sync import sync_sqlite_schema_sync
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,10 +21,11 @@ logger = logging.getLogger("blood_connect")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting Blood Connect API...")
-    # In development / SQLite mode, automatically create tables and seed locations and users if not existing
+    # In development / SQLite mode, automatically create tables, sync missing columns, and seed locations and users
     if settings.DATABASE_URL.startswith("sqlite"):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(sync_sqlite_schema_sync)
         async with AsyncSessionLocal() as session:
             await seed_locations(session)
             from app.seeds.users import seed_users
