@@ -45,6 +45,15 @@ const DEFAULT_LOCATIONS: LocationItem[] = [
   { id: 11, name: 'Perur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
 ];
 
+interface LastPatientDetails {
+  patient_name: string;
+  hospital_name: string;
+  required_units: number;
+  urgency: UrgencyLevel;
+  message?: string;
+  saved_at?: string;
+}
+
 function FindDonorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,6 +82,7 @@ function FindDonorContent() {
   const [requesterOtp, setRequesterOtp] = useState('');
   const [otpCooldown, setOtpCooldown] = useState(0);
 
+  const [lastPatientDetails, setLastPatientDetails] = useState<LastPatientDetails | null>(null);
   const [patientName, setPatientName] = useState('');
   const [hospitalName, setHospitalName] = useState('');
   const [requiredUnits, setRequiredUnits] = useState(1);
@@ -168,6 +178,32 @@ function FindDonorContent() {
       setRequesterMobile('');
       setRequesterOtp('');
     }
+
+    // Check last patient details from localStorage for 1-click multiple donor requests
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('bloodconnect_last_patient');
+        if (saved) {
+          const parsed: LastPatientDetails = JSON.parse(saved);
+          if (parsed && parsed.patient_name && parsed.hospital_name) {
+            setLastPatientDetails(parsed);
+            setPatientName(parsed.patient_name);
+            setHospitalName(parsed.hospital_name);
+            setRequiredUnits(parsed.required_units || 1);
+            setUrgency(parsed.urgency || 'HIGH');
+            setMessage(parsed.message || '');
+            return;
+          }
+        }
+      } catch {}
+    }
+
+    setLastPatientDetails(null);
+    setPatientName('');
+    setHospitalName('');
+    setRequiredUnits(1);
+    setUrgency('HIGH');
+    setMessage('');
   };
 
   const handleSendRequesterOtp = async () => {
@@ -230,6 +266,23 @@ function FindDonorContent() {
         blood_group: requestModalDonor.blood_group,
         location_id: requestModalDonor.location?.id,
       });
+
+      // Persist patient details for instant reuse with other donors
+      const patientData: LastPatientDetails = {
+        patient_name: patientName.trim(),
+        hospital_name: hospitalName.trim(),
+        required_units: Number(requiredUnits),
+        urgency,
+        message: message.trim() || undefined,
+        saved_at: new Date().toISOString(),
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bloodconnect_last_patient', JSON.stringify(patientData));
+        } catch {}
+      }
+      setLastPatientDetails(patientData);
+
       setRequestStep('SUCCESS');
     } catch (err: any) {
       setRequestError(err.message || 'Failed to send request. Please try again.');
@@ -265,6 +318,22 @@ function FindDonorContent() {
         blood_group: requestModalDonor.blood_group,
         location_id: requestModalDonor.location?.id,
       });
+
+      // Persist patient details for instant reuse with other donors
+      const patientData: LastPatientDetails = {
+        patient_name: patientName.trim(),
+        hospital_name: hospitalName.trim(),
+        required_units: Number(requiredUnits),
+        urgency,
+        message: message.trim() || undefined,
+        saved_at: new Date().toISOString(),
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bloodconnect_last_patient', JSON.stringify(patientData));
+        } catch {}
+      }
+      setLastPatientDetails(patientData);
 
       setRequestStep('SUCCESS');
     } catch (err: any) {
@@ -665,21 +734,22 @@ function FindDonorContent() {
                   <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto">
                     Your request has been dispatched to <strong>{requestModalDonor.full_name}</strong>. As soon as they accept, their verified phone number will unlock on your dashboard for direct coordination.
                   </p>
-                  <div className="pt-2 flex flex-col gap-2">
+                  <div className="pt-2 flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => setRequestModalDonor(null)}
+                      className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      <span>Request Another Donor</span>
+                    </button>
                     <button
                       onClick={() => {
                         setRequestModalDonor(null);
                         router.push('/requester/dashboard');
                       }}
-                      className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                      className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
                     >
-                      Go to Sent Requests Dashboard
-                    </button>
-                    <button
-                      onClick={() => setRequestModalDonor(null)}
-                      className="text-xs text-slate-500 hover:text-slate-800 font-medium py-1"
-                    >
-                      Close
+                      View Sent Requests
                     </button>
                   </div>
                 </div>
@@ -814,9 +884,85 @@ function FindDonorContent() {
 
                   {/* Section 2: Patient and Emergency Blood Details */}
                   <div className="space-y-3">
-                    <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                      {!isAuthenticated ? '2. Emergency Blood Details' : 'Emergency Blood Request Details'}
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        {!isAuthenticated ? '2. Emergency Blood Details' : 'Emergency Blood Request Details'}
+                      </div>
                     </div>
+
+                    {/* Smart Patient Details Confirmation / Reuse Banner */}
+                    {lastPatientDetails && (
+                      <div className="p-4 bg-red-50/90 border-2 border-red-200/90 rounded-2xl space-y-3 animate-in fade-in">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-red-600 text-white flex items-center justify-center font-bold text-xs shadow-xs flex-shrink-0">
+                              <Sparkles className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <span className="text-xs font-bold text-slate-900 block">
+                                Requesting for the Same Patient?
+                              </span>
+                              <span className="text-[11px] text-slate-600">
+                                Previous patient details have been prefilled for quick submission.
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPatientName(lastPatientDetails.patient_name);
+                                setHospitalName(lastPatientDetails.hospital_name);
+                                setRequiredUnits(lastPatientDetails.required_units || 1);
+                                setUrgency(lastPatientDetails.urgency || 'HIGH');
+                                setMessage(lastPatientDetails.message || '');
+                              }}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg shadow-xs cursor-pointer"
+                            >
+                              Keep Details
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLastPatientDetails(null);
+                                setPatientName('');
+                                setHospitalName('');
+                                setRequiredUnits(1);
+                                setUrgency('HIGH');
+                                setMessage('');
+                                if (typeof window !== 'undefined') {
+                                  localStorage.removeItem('bloodconnect_last_patient');
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 cursor-pointer"
+                            >
+                              New Patient
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Details summary badge strip */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+                          <div className="bg-white p-2.5 rounded-xl border border-red-100">
+                            <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Patient</span>
+                            <span className="font-bold text-slate-900 truncate block">{lastPatientDetails.patient_name}</span>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-red-100">
+                            <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Hospital</span>
+                            <span className="font-bold text-slate-900 truncate block">{lastPatientDetails.hospital_name}</span>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-red-100">
+                            <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Units & Urgency</span>
+                            <span className="font-black text-red-600">{lastPatientDetails.required_units} Bag(s) • {lastPatientDetails.urgency}</span>
+                          </div>
+                          <div className="bg-white p-2.5 rounded-xl border border-red-100">
+                            <span className="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Notes</span>
+                            <span className="font-medium text-slate-600 truncate block">{lastPatientDetails.message || 'None'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
