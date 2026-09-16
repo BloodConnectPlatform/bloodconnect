@@ -180,30 +180,61 @@ function FindDonorContent() {
     }
 
     // Check last patient details from localStorage for 1-click multiple donor requests
+    let savedPatient: LastPatientDetails | null = null;
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('bloodconnect_last_patient');
         if (saved) {
           const parsed: LastPatientDetails = JSON.parse(saved);
           if (parsed && parsed.patient_name && parsed.hospital_name) {
-            setLastPatientDetails(parsed);
-            setPatientName(parsed.patient_name);
-            setHospitalName(parsed.hospital_name);
-            setRequiredUnits(parsed.required_units || 1);
-            setUrgency(parsed.urgency || 'HIGH');
-            setMessage(parsed.message || '');
-            return;
+            savedPatient = parsed;
           }
         }
       } catch {}
     }
 
-    setLastPatientDetails(null);
-    setPatientName('');
-    setHospitalName('');
-    setRequiredUnits(1);
-    setUrgency('HIGH');
-    setMessage('');
+    if (savedPatient) {
+      setLastPatientDetails(savedPatient);
+      setPatientName(savedPatient.patient_name);
+      setHospitalName(savedPatient.hospital_name);
+      setRequiredUnits(savedPatient.required_units || 1);
+      setUrgency(savedPatient.urgency || 'HIGH');
+      setMessage(savedPatient.message || '');
+    } else {
+      setLastPatientDetails(null);
+      setPatientName('');
+      setHospitalName('');
+      setRequiredUnits(1);
+      setUrgency('HIGH');
+      setMessage('');
+    }
+  };
+
+  const savePatientDetailsToStorage = (override?: Partial<LastPatientDetails>) => {
+    const pName = (override?.patient_name !== undefined ? override.patient_name : patientName).trim();
+    const hName = (override?.hospital_name !== undefined ? override.hospital_name : hospitalName).trim();
+    const units = override?.required_units !== undefined ? override.required_units : (Number(requiredUnits) || 1);
+    const urg = override?.urgency !== undefined ? override.urgency : urgency;
+    const msg = (override?.message !== undefined ? override.message : message).trim();
+
+    if (pName && hName) {
+      const patientData: LastPatientDetails = {
+        patient_name: pName,
+        hospital_name: hName,
+        required_units: units,
+        urgency: urg,
+        message: msg || undefined,
+        saved_at: new Date().toISOString(),
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bloodconnect_last_patient', JSON.stringify(patientData));
+        } catch {}
+      }
+      setLastPatientDetails(patientData);
+      return patientData;
+    }
+    return null;
   };
 
   const handleSendRequesterOtp = async () => {
@@ -216,6 +247,9 @@ function FindDonorContent() {
       setRequestError('Please enter your full name as requester.');
       return;
     }
+
+    // Always preserve patient details
+    savePatientDetailsToStorage();
 
     setIsSubmittingRequest(true);
     setRequestError(null);
@@ -247,6 +281,9 @@ function FindDonorContent() {
       return;
     }
 
+    // Immediately persist patient details so details remain saved even on failed request
+    savePatientDetailsToStorage();
+
     // If unauthenticated: send OTP first to verify requester identity
     if (!isAuthenticated) {
       await handleSendRequesterOtp();
@@ -267,22 +304,6 @@ function FindDonorContent() {
         location_id: requestModalDonor.location?.id,
       });
 
-      // Persist patient details for instant reuse with other donors
-      const patientData: LastPatientDetails = {
-        patient_name: patientName.trim(),
-        hospital_name: hospitalName.trim(),
-        required_units: Number(requiredUnits),
-        urgency,
-        message: message.trim() || undefined,
-        saved_at: new Date().toISOString(),
-      };
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('bloodconnect_last_patient', JSON.stringify(patientData));
-        } catch {}
-      }
-      setLastPatientDetails(patientData);
-
       setRequestStep('SUCCESS');
     } catch (err: any) {
       setRequestError(err.message || 'Failed to send request. Please try again.');
@@ -298,6 +319,9 @@ function FindDonorContent() {
       setRequestError('Please enter the 6-digit OTP code.');
       return;
     }
+
+    // Immediately persist patient details
+    savePatientDetailsToStorage();
 
     setIsSubmittingRequest(true);
     setRequestError(null);
@@ -318,22 +342,6 @@ function FindDonorContent() {
         blood_group: requestModalDonor.blood_group,
         location_id: requestModalDonor.location?.id,
       });
-
-      // Persist patient details for instant reuse with other donors
-      const patientData: LastPatientDetails = {
-        patient_name: patientName.trim(),
-        hospital_name: hospitalName.trim(),
-        required_units: Number(requiredUnits),
-        urgency,
-        message: message.trim() || undefined,
-        saved_at: new Date().toISOString(),
-      };
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('bloodconnect_last_patient', JSON.stringify(patientData));
-        } catch {}
-      }
-      setLastPatientDetails(patientData);
 
       setRequestStep('SUCCESS');
     } catch (err: any) {
@@ -903,41 +911,56 @@ function FindDonorContent() {
                                 Requesting for the Same Patient?
                               </span>
                               <span className="text-[11px] text-slate-600">
-                                Previous patient details have been prefilled for quick submission.
+                                {patientName.trim().toLowerCase() === lastPatientDetails.patient_name.toLowerCase()
+                                  ? 'Previous patient details are filled in for fast multi-donor requests.'
+                                  : 'Saved patient details are available to autofill with 1-click.'}
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setPatientName(lastPatientDetails.patient_name);
-                                setHospitalName(lastPatientDetails.hospital_name);
-                                setRequiredUnits(lastPatientDetails.required_units || 1);
-                                setUrgency(lastPatientDetails.urgency || 'HIGH');
-                                setMessage(lastPatientDetails.message || '');
-                              }}
-                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg shadow-xs cursor-pointer"
-                            >
-                              Keep Details
-                            </button>
+                            {patientName.trim().toLowerCase() === lastPatientDetails.patient_name.toLowerCase() ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPatientName('');
+                                  setHospitalName('');
+                                  setRequiredUnits(1);
+                                  setUrgency('HIGH');
+                                  setMessage('');
+                                }}
+                                className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 cursor-pointer"
+                              >
+                                Enter Different Patient
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPatientName(lastPatientDetails.patient_name);
+                                  setHospitalName(lastPatientDetails.hospital_name);
+                                  setRequiredUnits(lastPatientDetails.required_units || 1);
+                                  setUrgency(lastPatientDetails.urgency || 'HIGH');
+                                  setMessage(lastPatientDetails.message || '');
+                                }}
+                                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg shadow-xs cursor-pointer flex items-center gap-1"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                                <span>Fill Last Patient Details</span>
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
                                 setLastPatientDetails(null);
-                                setPatientName('');
-                                setHospitalName('');
-                                setRequiredUnits(1);
-                                setUrgency('HIGH');
-                                setMessage('');
                                 if (typeof window !== 'undefined') {
                                   localStorage.removeItem('bloodconnect_last_patient');
                                 }
                               }}
-                              className="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 cursor-pointer"
+                              className="px-2 py-1 text-[10px] text-slate-400 hover:text-red-600 font-medium hover:underline cursor-pointer"
+                              title="Forget saved patient"
                             >
-                              New Patient
+                              Clear
                             </button>
                           </div>
                         </div>
