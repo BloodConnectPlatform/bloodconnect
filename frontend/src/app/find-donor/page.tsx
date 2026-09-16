@@ -162,7 +162,7 @@ function FindDonorContent() {
     setRequestError(null);
     if (user) {
       setRequesterName(user.name || '');
-      setRequesterMobile(user.mobile_number || '');
+      setRequesterMobile(user.mobile || user.mobile_number || '');
     } else {
       setRequesterName('');
       setRequesterMobile('');

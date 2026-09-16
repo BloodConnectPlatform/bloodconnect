@@ -73,24 +73,33 @@ export interface PublicDonor {
 }
 
 export interface BloodRequest {
-  id: number;
-  requester_id: number;
-  donor_id: number;
-  patient_name: string;
-  hospital_name: string;
-  required_units: number;
-  urgency: UrgencyLevel;
+  id: string | number;
+  requester_id?: string | number;
+  donor_id?: string | number;
+  blood_group?: BloodGroup;
+  location?: LocationItem;
+  patient_name?: string;
+  hospital_name?: string;
+  required_units?: number;
+  urgency?: UrgencyLevel;
   message?: string;
   status: RequestStatus;
   created_at: string;
   updated_at?: string;
+  responded_at?: string;
   // Disclosed strictly when status is ACCEPTED
+  donor_name?: string;
+  donor_mobile?: string;
   donor_contact?: string;
+  requester_name?: string;
+  requester_mobile?: string;
   requester_contact?: string;
   donor?: PublicDonor;
   requester?: {
-    id: number;
+    id?: string | number;
+    name?: string;
     mobile_number?: string;
+    mobile?: string;
   };
 }
 

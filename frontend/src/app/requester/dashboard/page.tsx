@@ -16,7 +16,11 @@ import {
   Loader2,
   Building,
   Heart,
-  ExternalLink,
+  User as UserIcon,
+  ShieldCheck,
+  Calendar,
+  Sparkles,
+  MapPin,
 } from 'lucide-react';
 import { BloodRequest, NotificationItem } from '@/types';
 import { api } from '@/lib/api';
@@ -42,13 +46,14 @@ export default function RequesterDashboardPage() {
     setIsLoading(true);
     try {
       const [reqData, notifData] = await Promise.all([
-        api.getMySentRequests(1, 20),
-        api.getNotifications(1, 20),
+        api.getMySentRequests(1, 50),
+        api.getNotifications(1, 50),
       ]);
-      setRequests(reqData.items);
-      setNotifications(notifData.items);
-    } catch {
-      // Handled
+      const list = Array.isArray(reqData) ? reqData : (reqData?.items || []);
+      setRequests(list);
+      setNotifications(notifData?.items || []);
+    } catch (err) {
+      console.error('Failed to load requester dashboard data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -71,38 +76,92 @@ export default function RequesterDashboardPage() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-        <p className="text-sm font-medium">Loading your blood requests...</p>
+        <p className="text-sm font-medium">Loading your requester dashboard & requests...</p>
       </div>
     );
   }
 
   const unreadNotifCount = notifications.filter((n) => !n.is_read).length;
+  const pendingCount = requests.filter((r) => r.status === 'PENDING').length;
+  const acceptedCount = requests.filter((r) => r.status === 'ACCEPTED').length;
+
+  const displayName = user?.name || 'Registered Requester';
+  const displayMobile = user?.mobile || user?.mobile_number || '—';
 
   return (
     <div className="flex-1 bg-slate-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 rounded-lg text-xs font-bold text-red-800 mb-2">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Requester Status Center</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-              My Sent Blood Requests
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-600">
-              Track your emergency requests. When a voluntary donor accepts, their phone number is immediately revealed.
-            </p>
-          </div>
+        {/* Requester Identity & Profile Banner */}
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xs border border-slate-200/80">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            {/* Left: Profile Information */}
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-rose-700 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-red-500/20 flex-shrink-0">
+                <UserIcon className="w-8 h-8" />
+              </div>
 
-          <Link
-            href="/find-donor"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md shadow-red-500/20 transition-all cursor-pointer"
-          >
-            <Search className="w-4 h-4" />
-            <span>Search More Donors</span>
-          </Link>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-2xl font-black text-slate-900">{displayName}</h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase bg-red-100 text-red-800">
+                    {user?.role || 'REQUESTER'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    Verified Mobile
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 font-medium">
+                  <span className="flex items-center gap-1 text-slate-700 font-bold">
+                    <Phone className="w-3.5 h-3.5 text-slate-400" />
+                    {displayMobile}
+                  </span>
+                  {user?.created_at && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1 text-slate-500">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        Member since {new Date(user.created_at).toLocaleDateString()}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Quick Stats & Search Action */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2.5 px-4 text-center">
+                <div>
+                  <div className="text-lg font-black text-slate-900">{requests.length}</div>
+                  <div className="text-[10px] uppercase font-bold text-slate-500">Total Sent</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl p-2.5 px-4 text-center">
+                <div>
+                  <div className="text-lg font-black text-amber-900">{pendingCount}</div>
+                  <div className="text-[10px] uppercase font-bold text-amber-700">Pending</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-2xl p-2.5 px-4 text-center">
+                <div>
+                  <div className="text-lg font-black text-emerald-900">{acceptedCount}</div>
+                  <div className="text-[10px] uppercase font-bold text-emerald-700">Accepted</div>
+                </div>
+              </div>
+
+              <Link
+                href="/find-donor"
+                className="py-3 px-5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl shadow-md shadow-red-500/20 transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Search className="w-4 h-4" />
+                <span>Search Voluntary Donors</span>
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -116,7 +175,7 @@ export default function RequesterDashboardPage() {
             }`}
           >
             <Droplet className="w-3.5 h-3.5" />
-            Sent Requests ({requests.length})
+            Sent Blood Requests ({requests.length})
           </button>
 
           <button
@@ -147,7 +206,7 @@ export default function RequesterDashboardPage() {
                 </div>
                 <h3 className="text-base font-bold text-slate-800">No Blood Requests Sent Yet</h3>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  If you need blood for a patient, search for matching voluntary donors in Tamil Nadu and send an emergency request.
+                  If you need blood for an emergency patient, search voluntary donors in Tamil Nadu and click <strong>Request Contact</strong>.
                 </p>
                 <Link
                   href="/find-donor"
@@ -158,136 +217,142 @@ export default function RequesterDashboardPage() {
                 </Link>
               </div>
             ) : (
-              requests.map((req) => (
-                <div
-                  key={req.id}
-                  className={`bg-white rounded-3xl p-6 md:p-8 border shadow-xs transition-all ${
-                    req.status === 'ACCEPTED'
-                      ? 'border-emerald-300 ring-2 ring-emerald-500/20'
-                      : req.status === 'REJECTED'
-                      ? 'border-slate-200 opacity-90'
-                      : 'border-amber-200'
-                  }`}
-                >
-                  {/* Status Banner */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      <span className="px-3 py-1 rounded-xl text-xs font-black uppercase bg-red-100 text-red-800">
-                        {req.donor?.blood_group || ''} Blood Request
-                      </span>
+              requests.map((req) => {
+                const reqBloodGroup = req.blood_group || req.donor?.blood_group || 'Blood';
+                const donorName = req.donor_name || req.donor?.full_name || req.donor?.name || 'Voluntary Donor';
+                const locationName = req.location?.name || req.donor?.location?.name || 'Tamil Nadu';
+                const unlockedPhone = req.donor_mobile || req.donor_contact;
 
-                      {req.status === 'ACCEPTED' && (
-                        <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                          Donor Accepted & Unlocked
+                return (
+                  <div
+                    key={String(req.id)}
+                    className={`bg-white rounded-3xl p-6 md:p-8 border shadow-xs transition-all ${
+                      req.status === 'ACCEPTED'
+                        ? 'border-emerald-300 ring-2 ring-emerald-500/20'
+                        : req.status === 'REJECTED'
+                        ? 'border-slate-200 opacity-90'
+                        : 'border-amber-200'
+                    }`}
+                  >
+                    {/* Status Banner */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="px-3 py-1 rounded-xl text-xs font-black uppercase bg-red-100 text-red-800">
+                          {reqBloodGroup} Request
                         </span>
-                      )}
-                      {req.status === 'PENDING' && (
-                        <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-amber-100 text-amber-800 flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 text-amber-600 animate-spin" />
-                          Waiting for Response
+
+                        {req.status === 'ACCEPTED' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            Donor Accepted & Phone Unlocked
+                          </span>
+                        )}
+                        {req.status === 'PENDING' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-amber-100 text-amber-800 flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-amber-600 animate-spin" />
+                            Awaiting Donor Response
+                          </span>
+                        )}
+                        {req.status === 'REJECTED' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-slate-100 text-slate-600 flex items-center gap-1.5">
+                            <XCircle className="w-4 h-4 text-slate-400" />
+                            Donor Unavailable / Declined
+                          </span>
+                        )}
+
+                        <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          {locationName}
                         </span>
-                      )}
-                      {req.status === 'REJECTED' && (
-                        <span className="px-3 py-1 rounded-full text-xs font-black uppercase bg-slate-100 text-slate-600 flex items-center gap-1.5">
-                          <XCircle className="w-4 h-4 text-slate-400" />
-                          Not Available / Declined
-                        </span>
-                      )}
+                      </div>
 
                       <span className="text-xs text-slate-400 font-medium">
-                        Location: {req.donor?.location?.name || 'Tamil Nadu'}
+                        Sent on {new Date(req.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
-                    <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">
-                      {req.urgency} Urgency
-                    </span>
-                  </div>
-
-                  {/* Body Content */}
-                  <div className="py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left: Patient & Hospital */}
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-bold text-slate-900">
-                        Patient: {req.patient_name} ({req.required_units} Unit(s))
-                      </h3>
-                      <div className="text-xs text-slate-600 space-y-1">
-                        <div className="flex items-center gap-1.5 font-medium">
-                          <Building className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Hospital: {req.hospital_name}</span>
+                    {/* Body Content */}
+                    <div className="py-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Left: Request & Medical Information */}
+                      <div className="space-y-3">
+                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Request Details
                         </div>
-                        {req.message && (
-                          <div className="p-3 bg-slate-50 rounded-xl text-slate-600 italic">
-                            "{req.message}"
+
+                        {req.message ? (
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-800 leading-relaxed space-y-1 font-medium">
+                            {req.message}
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600">
+                            Urgent requirement for {reqBloodGroup} blood.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Target Voluntary Donor Details & Unlocked Phone */}
+                      <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
+                        <div>
+                          <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                            Target Voluntary Donor
+                          </div>
+                          <div className="text-base font-bold text-slate-900">
+                            {donorName}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            Blood Group: <strong>{reqBloodGroup}</strong> • Location: {locationName}
+                          </div>
+                        </div>
+
+                        {/* Unlocked Contact Box when ACCEPTED */}
+                        {req.status === 'ACCEPTED' && unlockedPhone ? (
+                          <div className="mt-4 pt-4 border-t border-emerald-200 space-y-3">
+                            <div className="flex items-center gap-2 text-xs font-bold text-emerald-950 bg-emerald-100/70 p-3 rounded-xl border border-emerald-200">
+                              <Phone className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                              <span>Verified Donor Contact: {unlockedPhone}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`tel:${unlockedPhone}`}
+                                className="flex-1 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                Call Donor
+                              </a>
+
+                              <a
+                                href={`https://wa.me/${unlockedPhone.replace(/\D/g, '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                WhatsApp
+                              </a>
+                            </div>
+                          </div>
+                        ) : req.status === 'REJECTED' ? (
+                          <div className="mt-4 pt-4 border-t border-slate-200">
+                            <Link
+                              href="/find-donor"
+                              className="w-full py-2.5 px-3 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                            >
+                              <Search className="w-3.5 h-3.5" />
+                              Search Other {reqBloodGroup} Donors
+                            </Link>
+                          </div>
+                        ) : (
+                          <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500 flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                            <span>Donor phone number will unlock automatically when they accept.</span>
                           </div>
                         )}
                       </div>
                     </div>
-
-                    {/* Right: Donor Details & Phone Disclosure */}
-                    <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-200/80 flex flex-col justify-between">
-                      <div>
-                        <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                          Requested Voluntary Donor
-                        </div>
-                        <div className="text-base font-bold text-slate-900">
-                          {req.donor?.full_name || 'Registered Donor'}
-                        </div>
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          Blood Group: <strong>{req.donor?.blood_group}</strong> • Location:{' '}
-                          {req.donor?.location?.name}
-                        </div>
-                      </div>
-
-                      {/* Unlocked Contact Box when ACCEPTED */}
-                      {req.status === 'ACCEPTED' && req.donor_contact ? (
-                        <div className="mt-4 pt-4 border-t border-emerald-200 space-y-3">
-                          <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 bg-emerald-100/60 p-2.5 rounded-xl border border-emerald-200">
-                            <Phone className="w-4 h-4 text-emerald-600" />
-                            <span>Verified Donor Mobile: {req.donor_contact}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <a
-                              href={`tel:${req.donor_contact}`}
-                              className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all"
-                            >
-                              <Phone className="w-3.5 h-3.5" />
-                              Call Donor Directly
-                            </a>
-
-                            <a
-                              href={`https://wa.me/${req.donor_contact.replace(/\D/g, '')}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                              WhatsApp
-                            </a>
-                          </div>
-                        </div>
-                      ) : req.status === 'REJECTED' ? (
-                        <div className="mt-4 pt-4 border-t border-slate-200">
-                          <Link
-                            href="/find-donor"
-                            className="w-full py-2 px-3 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            <Search className="w-3.5 h-3.5" />
-                            Search Other {req.donor?.blood_group} Donors
-                          </Link>
-                        </div>
-                      ) : (
-                        <div className="mt-4 pt-4 border-t border-slate-200 text-xs text-slate-500 flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-amber-500" />
-                          <span>Donor phone will unlock as soon as they accept.</span>
-                        </div>
-                      )}
-                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         )}

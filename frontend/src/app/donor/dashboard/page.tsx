@@ -37,7 +37,7 @@ export default function DonorDashboardPage() {
 
   const [activeTab, setActiveTab] = useState<'PENDING' | 'ACCEPTED' | 'ALL'>('PENDING');
   const [isLoading, setIsLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | number | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Edit Profile Modal
@@ -96,7 +96,7 @@ export default function DonorDashboardPage() {
     }
   };
 
-  const handleAcceptRequest = async (requestId: number) => {
+  const handleAcceptRequest = async (requestId: string | number) => {
     setActionLoadingId(requestId);
     setMessage(null);
     try {
@@ -114,7 +114,7 @@ export default function DonorDashboardPage() {
     }
   };
 
-  const handleRejectRequest = async (requestId: number) => {
+  const handleRejectRequest = async (requestId: string | number) => {
     setActionLoadingId(requestId);
     setMessage(null);
     try {
@@ -225,7 +225,7 @@ export default function DonorDashboardPage() {
                     {profile.location?.name}
                   </span>
                   <span>•</span>
-                  <span>Registered: {user?.mobile_number}</span>
+                  <span>Registered: {user?.mobile || user?.mobile_number}</span>
                 </div>
               </div>
             </div>

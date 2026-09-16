@@ -2,7 +2,7 @@ import re
 import uuid
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from app.models.enums import UserRole
 
 
@@ -84,10 +84,17 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     name: str
     mobile: str
+    mobile_number: Optional[str] = None
     role: UserRole
     is_active: bool
     has_donor_profile: bool = False
     created_at: datetime
+
+    @model_validator(mode="after")
+    def populate_mobile_number(self):
+        if not self.mobile_number:
+            self.mobile_number = self.mobile
+        return self
 
     model_config = {"from_attributes": True}
 

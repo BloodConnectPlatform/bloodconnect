@@ -156,10 +156,13 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl text-xs font-semibold text-slate-700 border border-slate-200">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/90 rounded-xl text-xs font-semibold text-slate-700 border border-slate-200">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>{user?.mobile_number}</span>
-                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
+                  <span className="font-bold text-slate-900">{user?.name || 'User'}</span>
+                  <span className="text-slate-500 text-[11px]">
+                    {user?.mobile || user?.mobile_number}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
                     {user?.role}
                   </span>
                 </div>
@@ -278,14 +281,17 @@ export const Navbar: React.FC = () => {
                   My Sent Requests
                 </Link>
               )}
-              <div className="px-3 py-2 flex items-center justify-between text-xs text-slate-600">
-                <span>{user?.mobile_number}</span>
+              <div className="px-3 py-2 flex items-center justify-between text-xs text-slate-600 bg-slate-50 rounded-xl">
+                <div>
+                  <div className="font-bold text-slate-900">{user?.name || 'User'}</div>
+                  <div className="text-[11px] text-slate-500">{user?.mobile || user?.mobile_number} ({user?.role})</div>
+                </div>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
                     logout();
                   }}
-                  className="text-red-600 font-semibold"
+                  className="text-red-600 font-bold hover:underline"
                 >
                   Sign Out
                 </button>
