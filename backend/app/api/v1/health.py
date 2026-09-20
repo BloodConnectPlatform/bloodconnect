@@ -14,8 +14,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get(
+@router.api_route(
     "/health",
+    methods=["GET", "HEAD"],
     response_model=HealthResponse,
     summary="Health check endpoint",
     description="Returns the status of the API and its database connection.",
