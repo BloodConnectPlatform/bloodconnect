@@ -105,11 +105,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await api.logout();
     } catch {
-      api.clearTokens();
+      // Ignore network errors on logout
     } finally {
+      api.clearTokens();
       setUser(null);
       setDonorProfile(null);
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('bloodconnect_last_patient');
         window.location.href = '/';
       }
     }
