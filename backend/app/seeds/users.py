@@ -381,7 +381,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
     for admin_data in SAMPLE_ADMINS:
         stmt = select(User).where(User.mobile == admin_data["mobile"])
         res = await session.execute(stmt)
-        user = res.scalar_one_or_none()
+        user = res.scalars().first()
         if not user:
             user = User(
                 name=admin_data["name"],
@@ -398,7 +398,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
     for req_data in SAMPLE_REQUESTERS:
         stmt = select(User).where(User.mobile == req_data["mobile"])
         res = await session.execute(stmt)
-        user = res.scalar_one_or_none()
+        user = res.scalars().first()
         if not user:
             user = User(
                 name=req_data["name"],
@@ -415,7 +415,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
     for donor_data in SAMPLE_DONORS:
         stmt = select(User).where(User.mobile == donor_data["mobile"])
         res = await session.execute(stmt)
-        user = res.scalar_one_or_none()
+        user = res.scalars().first()
 
         loc = locations_map.get(donor_data["location"])
         if not loc:
@@ -438,7 +438,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
         # Check donor profile
         dp_stmt = select(DonorProfile).where(DonorProfile.user_id == user.id)
         dp_res = await session.execute(dp_stmt)
-        donor_profile = dp_res.scalar_one_or_none()
+        donor_profile = dp_res.scalars().first()
 
         if not donor_profile:
             donor_profile = DonorProfile(
@@ -477,7 +477,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                     BloodRequest.donor_id == arun_donor.id,
                 )
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if not req_check:
             req1 = BloodRequest(
                 requester_id=priya.id,
@@ -499,7 +499,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                     BloodRequest.donor_id == sanjay_donor.id,
                 )
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if not req_check:
             req2 = BloodRequest(
                 requester_id=rahul.id,
@@ -522,7 +522,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                     BloodRequest.donor_id == meera_donor.id,
                 )
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if not req_check:
             req3 = BloodRequest(
                 requester_id=karthik.id,
@@ -548,7 +548,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                     Report.donor_id == kishore_donor.id,
                 )
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if not rep_check:
             rep = Report(
                 reporter_id=ananya.id,
@@ -595,7 +595,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                         Notification.title == title,
                     )
                 )
-            ).scalar_one_or_none()
+            ).scalars().first()
             if not notif_check:
                 notif = Notification(
                     user_id=user_obj.id,
@@ -618,7 +618,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                     AdminAction.target_id == str(kishore_donor.id),
                 )
             )
-        ).scalar_one_or_none()
+        ).scalars().first()
         if not action_check:
             action = AdminAction(
                 admin_id=admin_user.id,
