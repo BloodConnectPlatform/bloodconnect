@@ -21,7 +21,6 @@ from app.database.base import Base
 from app.database.session import AsyncSessionLocal, engine
 from app.seeds.locations import seed_locations
 from app.seeds.users import (
-    SAMPLE_ADMINS,
     SAMPLE_DONORS,
     SAMPLE_REQUESTERS,
     seed_users,
@@ -69,8 +68,12 @@ async def main():
     print(f"{'Role':<12} | {'Name':<22} | {'Mobile':<12} | {'Details'}")
     print("-" * 70)
 
-    for admin in SAMPLE_ADMINS:
-        print(f"{'ADMIN':<12} | {admin['name']:<22} | {admin['mobile']:<12} | System Administration")
+    initial_admins = settings.INITIAL_ADMIN_PHONE_NUMBERS
+    if isinstance(initial_admins, str):
+        initial_admins = [p.strip() for p in initial_admins.split(",") if p.strip()]
+    for admin_phone in initial_admins:
+        print(f"{'ADMIN':<12} | {'System Administrator':<22} | {admin_phone:<12} | System Administration")
+
 
     for req in SAMPLE_REQUESTERS:
         print(f"{'REQUESTER':<12} | {req['name']:<22} | {req['mobile']:<12} | Active Requester")

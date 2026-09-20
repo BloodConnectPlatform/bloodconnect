@@ -22,20 +22,12 @@ from app.models.location import Location
 from app.models.notification import Notification
 from app.models.report import Report
 from app.models.user import User
+from app.core.config import settings
 from app.seeds.locations import seed_locations
 
 logger = logging.getLogger("blood_connect.seed")
 
 # Sample Users and Donors Data Definition
-SAMPLE_ADMINS = [
-    {
-        "name": "System Administrator",
-        "mobile": "9876543210",
-        "role": UserRole.ADMIN,
-        "is_active": True,
-    }
-]
-
 SAMPLE_REQUESTERS = [
     {
         "name": "Priya Sharma",
@@ -377,22 +369,30 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
     user_lookup: Dict[str, User] = {}
     donor_lookup: Dict[str, DonorProfile] = {}
 
-    # 2. Seed Admins
-    for admin_data in SAMPLE_ADMINS:
-        stmt = select(User).where(User.mobile == admin_data["mobile"])
+    # 2. Seed Initial Admins from settings
+    initial_admins = settings.INITIAL_ADMIN_PHONE_NUMBERS
+    if isinstance(initial_admins, str):
+        initial_admins = [p.strip() for p in initial_admins.split(",") if p.strip()]
+
+    for phone in initial_admins:
+        stmt = select(User).where(User.mobile == phone)
         res = await session.execute(stmt)
         user = res.scalars().first()
         if not user:
             user = User(
-                name=admin_data["name"],
-                mobile=admin_data["mobile"],
-                role=admin_data["role"],
-                is_active=admin_data["is_active"],
+                name="System Administrator",
+                mobile=phone,
+                role=UserRole.ADMIN,
+                is_active=True,
             )
             session.add(user)
             await session.flush()
             stats["admins"] += 1
-        user_lookup[admin_data["mobile"]] = user
+        else:
+            if user.role != UserRole.ADMIN:
+                user.role = UserRole.ADMIN
+                await session.flush()
+        user_lookup[phone] = user
 
     # 3. Seed Requesters
     for req_data in SAMPLE_REQUESTERS:
@@ -561,6 +561,12 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
             session.add(rep)
             stats["reports"] += 1
 
+    # Find any available admin user for sample system notifications and audit trail
+    admin_user = next((u for u in user_lookup.values() if u.role == UserRole.ADMIN), None)
+    if not admin_user:
+        admin_stmt = select(User).where(User.role == UserRole.ADMIN).limit(1)
+        admin_user = (await session.execute(admin_stmt)).scalars().first()
+
     # 7. Seed Sample Notifications
     sample_notifs = [
         (
@@ -578,7 +584,7 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
             False,
         ),
         (
-            user_lookup.get("9876543210"),
+            admin_user,
             NotificationType.SYSTEM,
             "Platform Maintenance Notice",
             "System database verified and sample entities active.",
@@ -609,7 +615,6 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
                 stats["notifications"] += 1
 
     # 8. Seed Admin Actions Audit Log
-    admin_user = user_lookup.get("9876543210")
     if admin_user and kishore_donor:
         action_check = (
             await session.execute(

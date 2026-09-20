@@ -43,6 +43,10 @@ from app.schemas.admin import (
     AdminStatisticsResponse,
     RequestStats,
     ReportStats,
+    AdminManagementAction,
+    AdminUserSummary,
+    AdminManagementRequest,
+    AdminManagementResponse,
 )
 
 __all__ = [
@@ -81,4 +85,8 @@ __all__ = [
     "AdminStatisticsResponse",
     "RequestStats",
     "ReportStats",
+    "AdminManagementAction",
+    "AdminUserSummary",
+    "AdminManagementRequest",
+    "AdminManagementResponse",
 ]

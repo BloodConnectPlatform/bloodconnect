@@ -125,16 +125,6 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setMobileNumber('9876543210');
-                  setFullName('System Administrator');
-                }}
-                className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-bold hover:bg-purple-200 cursor-pointer"
-              >
-                Admin (9876543210)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
                   setMobileNumber('9876543220');
                   setFullName('Priya Sharma');
                 }}
