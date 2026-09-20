@@ -23,3 +23,17 @@ async def test_root_endpoint(client: AsyncClient):
     assert data["name"] == "Blood Connect API"
     assert data["health"] == "/api/v1/health"
     assert data["documentation"] == "/docs"
+
+
+@pytest.mark.asyncio
+async def test_health_check_head_endpoint(client: AsyncClient):
+    """Test HEAD /api/v1/health returns HTTP 200."""
+    response = await client.head("/api/v1/health")
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_root_head_endpoint(client: AsyncClient):
+    """Test HEAD / returns HTTP 200."""
+    response = await client.head("/")
+    assert response.status_code == 200
