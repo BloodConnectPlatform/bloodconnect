@@ -58,3 +58,4 @@ Thumbs.db
 # Agent / AI Tooling
 .agent/
 
+!frontend/src/lib/
