@@ -110,3 +110,16 @@ async def reject_request(
     db: AsyncSession = Depends(get_db)
 ):
     return await request_service.reject_request(db, current_user, request_id)
+
+
+@router.delete(
+    "/{request_id}",
+    summary="Delete / Cancel a blood request",
+    description="Allows a requester (or admin) to delete or cancel a blood request when their requirement has been fulfilled or is no longer needed."
+)
+async def delete_request(
+    request_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    return await request_service.delete_request(db, current_user, request_id)

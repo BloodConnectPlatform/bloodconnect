@@ -438,5 +438,55 @@ class RequestService:
             requester_mobile=None
         )
 
+    async def delete_request(
+        self,
+        db: AsyncSession,
+        user: User,
+        request_id: uuid.UUID
+    ) -> dict:
+        """Allow requester (or admin) to delete/cancel a blood request when requirement is fulfilled."""
+        stmt = select(BloodRequest).where(BloodRequest.id == request_id)
+        result = await db.execute(stmt)
+        req = result.scalar_one_or_none()
+        if not req:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Blood request not found."
+            )
+
+        # Authorization: Requester or Admin
+        is_requester = req.requester_id == user.id
+        is_admin = user.role == UserRole.ADMIN
+
+        if not (is_requester or is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to delete this blood request."
+            )
+
+        # If request was PENDING or ACCEPTED, notify the donor that the request has been cancelled / fulfilled
+        if req.status in [RequestStatus.PENDING, RequestStatus.ACCEPTED]:
+            donor_user_id = req.donor.user_id if req.donor else None
+            if donor_user_id:
+                try:
+                    patient_str = f" for patient '{req.patient_name}'" if req.patient_name else ""
+                    await notification_service.create_notification(
+                        db=db,
+                        user_id=donor_user_id,
+                        type=NotificationType.SYSTEM,
+                        title="Blood Request Cancelled",
+                        message=f"The {req.blood_group.value} blood request{patient_str} from {req.requester.name} was cancelled as the requirement was fulfilled or no longer needed."
+                    )
+                except Exception:
+                    pass
+
+        await db.delete(req)
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": "Blood request deleted successfully."
+        }
+
 
 request_service = RequestService()

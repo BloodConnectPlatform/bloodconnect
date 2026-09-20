@@ -21,6 +21,8 @@ import {
   Calendar,
   Sparkles,
   MapPin,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { BloodRequest, NotificationItem } from '@/types';
 import { api } from '@/lib/api';
@@ -35,6 +37,12 @@ export default function RequesterDashboardPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'REQUESTS' | 'NOTIFICATIONS'>('REQUESTS');
+
+  // Delete Request State
+  const [requestToDelete, setRequestToDelete] = useState<BloodRequest | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -56,6 +64,23 @@ export default function RequesterDashboardPage() {
       console.error('Failed to load requester dashboard data:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRequest = async () => {
+    if (!requestToDelete) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await api.deleteRequest(requestToDelete.id);
+      setRequests((prev) => prev.filter((r) => r.id !== requestToDelete.id));
+      setActionSuccessMessage('Blood request deleted successfully. The target donor has been notified that your requirement was fulfilled.');
+      setRequestToDelete(null);
+      setTimeout(() => setActionSuccessMessage(null), 5000);
+    } catch (err: any) {
+      setDeleteError(err.message || 'Failed to delete blood request. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -91,6 +116,22 @@ export default function RequesterDashboardPage() {
   return (
     <div className="flex-1 bg-slate-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Action Success Alert Banner */}
+        {actionSuccessMessage && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-xs text-emerald-800 animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <span className="font-semibold">{actionSuccessMessage}</span>
+            </div>
+            <button
+              onClick={() => setActionSuccessMessage(null)}
+              className="text-emerald-700 hover:text-emerald-900 font-bold p-1 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Requester Identity & Profile Banner */}
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xs border border-slate-200/80">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -266,9 +307,23 @@ export default function RequesterDashboardPage() {
                         </span>
                       </div>
 
-                      <span className="text-xs text-slate-400 font-medium">
-                        Sent on {new Date(req.created_at).toLocaleDateString()}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                          Sent on {new Date(req.created_at).toLocaleDateString()}
+                        </span>
+
+                        <button
+                          onClick={() => {
+                            setRequestToDelete(req);
+                            setDeleteError(null);
+                          }}
+                          className="px-2.5 py-1 text-slate-500 hover:text-red-700 hover:bg-red-50 border border-slate-200 hover:border-red-200 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                          title="Delete or cancel this blood request"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          <span>Delete Request</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Body Content */}
@@ -288,6 +343,21 @@ export default function RequesterDashboardPage() {
                             Urgent requirement for {reqBloodGroup} blood.
                           </div>
                         )}
+
+                        {/* Quick fulfilled note */}
+                        <div className="pt-2 text-[11px] text-slate-500 flex items-center gap-1.5">
+                          <span>Got requirement satisfied?</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRequestToDelete(req);
+                              setDeleteError(null);
+                            }}
+                            className="text-red-600 hover:underline font-bold cursor-pointer"
+                          >
+                            Delete / Cancel Request
+                          </button>
+                        </div>
                       </div>
 
                       {/* Right: Target Voluntary Donor Details & Unlocked Phone */}
@@ -405,6 +475,69 @@ export default function RequesterDashboardPage() {
         {/* Safety Disclaimer */}
         <MedicalDisclaimer variant="card" />
       </div>
+
+      {/* ================= DELETE CONFIRMATION MODAL ================= */}
+      {requestToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <button
+                onClick={() => setRequestToDelete(null)}
+                disabled={isDeleting}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-lg font-bold text-slate-900">Delete Blood Request?</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                If your requirement for <strong>{requestToDelete.blood_group || 'Blood'}</strong> blood was fulfilled or is no longer needed, you can delete this request. It will be removed from your dashboard and the target donor will be notified that the requirement was satisfied.
+              </p>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRequestToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Keep Request
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteRequest}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md shadow-red-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:bg-slate-300"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Yes, Delete Request</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

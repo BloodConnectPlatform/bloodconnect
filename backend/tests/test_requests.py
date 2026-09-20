@@ -436,3 +436,103 @@ async def test_blood_request_same_patient_allowed_after_rejection(
     )
     assert res2.status_code == 201
 
+
+@pytest.mark.asyncio
+async def test_delete_pending_blood_request_success(
+    client: AsyncClient, setup_users_and_donor
+):
+    """Test requester can delete a pending blood request when requirement is fulfilled."""
+    data = setup_users_and_donor
+    req_headers = {"Authorization": f"Bearer {data['req1_token']}"}
+    donor_headers = {"Authorization": f"Bearer {data['donor_token']}"}
+
+    # 1. Create request
+    res_create = await client.post(
+        "/api/v1/requests",
+        headers=req_headers,
+        json={
+            "donor_id": str(data["donor_profile"].id),
+            "blood_group": "O+",
+            "location_id": data["location"].id,
+            "patient_name": "Suresh",
+            "hospital_name": "Apollo"
+        }
+    )
+    assert res_create.status_code == 201
+    request_id = res_create.json()["id"]
+
+    # 2. Delete request
+    res_del = await client.delete(f"/api/v1/requests/{request_id}", headers=req_headers)
+    assert res_del.status_code == 200
+    assert res_del.json()["success"] is True
+
+    # 3. Verify request is no longer in sent requests list
+    res_sent = await client.get("/api/v1/requests/sent", headers=req_headers)
+    assert len(res_sent.json()) == 0
+
+    # 4. Verify donor received cancellation notification
+    notif_res = await client.get("/api/v1/notifications", headers=donor_headers)
+    assert notif_res.status_code == 200
+    notif_items = notif_res.json()["items"]
+    assert any("cancelled" in n["title"].lower() or "cancelled" in n["message"].lower() for n in notif_items)
+
+
+@pytest.mark.asyncio
+async def test_delete_blood_request_unauthorized_forbidden(
+    client: AsyncClient, setup_users_and_donor
+):
+    """Test third-party user cannot delete someone else's blood request."""
+    data = setup_users_and_donor
+    req1_headers = {"Authorization": f"Bearer {data['req1_token']}"}
+    req2_headers = {"Authorization": f"Bearer {data['req2_token']}"}
+
+    res_create = await client.post(
+        "/api/v1/requests",
+        headers=req1_headers,
+        json={
+            "donor_id": str(data["donor_profile"].id),
+            "blood_group": "O+",
+            "location_id": data["location"].id,
+            "patient_name": "Patient X"
+        }
+    )
+    request_id = res_create.json()["id"]
+
+    # User 2 tries to delete User 1's request -> 403 Forbidden
+    res_del = await client.delete(f"/api/v1/requests/{request_id}", headers=req2_headers)
+    assert res_del.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_blood_request_releases_duplicate_lock(
+    client: AsyncClient, setup_users_and_donor
+):
+    """Test deleting an active request releases duplicate patient lock allowing re-request."""
+    data = setup_users_and_donor
+    req_headers = {"Authorization": f"Bearer {data['req1_token']}"}
+
+    payload = {
+        "donor_id": str(data["donor_profile"].id),
+        "blood_group": "O+",
+        "location_id": data["location"].id,
+        "patient_name": "Unique Patient"
+    }
+
+    # 1. Create first request
+    res1 = await client.post("/api/v1/requests", headers=req_headers, json=payload)
+    assert res1.status_code == 201
+    request_id = res1.json()["id"]
+
+    # 2. Duplicate is blocked
+    res2 = await client.post("/api/v1/requests", headers=req_headers, json=payload)
+    assert res2.status_code == 400
+
+    # 3. Requester deletes the active request
+    res_del = await client.delete(f"/api/v1/requests/{request_id}", headers=req_headers)
+    assert res_del.status_code == 200
+
+    # 4. Now sending request for same patient is allowed again
+    res3 = await client.post("/api/v1/requests", headers=req_headers, json=payload)
+    assert res3.status_code == 201
+
+
