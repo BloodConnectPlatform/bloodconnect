@@ -1,9 +1,56 @@
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from enum import Enum
+from typing import Any, Dict, List, Optional
 import uuid
-from pydantic import BaseModel, Field
-from app.models.enums import BloodGroup, ReportStatus
+from pydantic import BaseModel, Field, field_validator, model_validator
+from app.models.enums import BloodGroup, ReportStatus, UserRole
+from app.schemas.auth import validate_indian_mobile
 from app.schemas.donor import LocationResponse
+
+
+class AdminManagementAction(str, Enum):
+    PROMOTE = "PROMOTE"
+    DEMOTE = "DEMOTE"
+    LIST = "LIST"
+
+
+class AdminUserSummary(BaseModel):
+    id: uuid.UUID
+    name: str
+    mobile: str
+    role: UserRole
+    is_active: bool
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class AdminManagementRequest(BaseModel):
+    action: AdminManagementAction = Field(..., description="Action to perform: PROMOTE, DEMOTE, or LIST")
+    mobile: Optional[str] = Field(None, description="10-digit Indian mobile number for PROMOTE or DEMOTE")
+
+    @field_validator("mobile")
+    @classmethod
+    def validate_mobile(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or not v.strip():
+            return None
+        return validate_indian_mobile(v)
+
+    @model_validator(mode="after")
+    def validate_action_payload(self) -> "AdminManagementRequest":
+        if self.action in (AdminManagementAction.PROMOTE, AdminManagementAction.DEMOTE):
+            if not self.mobile:
+                raise ValueError(f"Field 'mobile' is required when action is '{self.action.value}'.")
+        return self
+
+
+class AdminManagementResponse(BaseModel):
+    success: bool = True
+    message: str
+    action: AdminManagementAction
+    user: Optional[AdminUserSummary] = None
+    admins: Optional[list[AdminUserSummary]] = None
+
 
 
 class AdminDonorResponse(BaseModel):

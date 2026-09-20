@@ -2,6 +2,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.donor import DonorProfile
 from app.models.enums import UserRole
 from app.models.location import Location
@@ -22,7 +23,7 @@ async def test_seed_users_creates_expected_data(db_session: AsyncSession):
     admin_stmt = select(User).where(User.role == UserRole.ADMIN)
     admin_user = (await db_session.execute(admin_stmt)).scalar_one_or_none()
     assert admin_user is not None
-    assert admin_user.mobile == "9876543210"
+    assert admin_user.mobile in settings.INITIAL_ADMIN_PHONE_NUMBERS
 
     # Verify donors exist and are linked to valid locations
     donor_count = (await db_session.execute(select(func.count(DonorProfile.id)))).scalar()

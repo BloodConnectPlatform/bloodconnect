@@ -3,13 +3,15 @@ import uuid
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import require_admin
+from app.core.dependencies import AdminAuthContext, require_admin, require_admin_or_bootstrap_secret
 from app.database.session import get_db
 from app.models.enums import BloodGroup, ReportReason, ReportStatus, RequestStatus
 from app.models.user import User
 from app.schemas.admin import (
     AdminAuditLogResponse,
     AdminDonorResponse,
+    AdminManagementRequest,
+    AdminManagementResponse,
     AdminStatisticsResponse,
     AdminUpdateReportRequest,
 )
@@ -218,3 +220,22 @@ async def list_audit_logs(
     db: AsyncSession = Depends(get_db)
 ):
     return await admin_service.list_audit_logs(db, page=page, size=size)
+
+
+@router.post(
+    "/manage-admins",
+    response_model=AdminManagementResponse,
+    summary="Dynamic Administrator Management (PROMOTE, DEMOTE, LIST)",
+    description="Allows authenticated administrators (via JWT) or emergency bootstrap recovery (via X-Admin-Secret) to promote, demote, or list platform administrators."
+)
+async def manage_admins(
+    request: AdminManagementRequest,
+    auth_context: AdminAuthContext = Depends(require_admin_or_bootstrap_secret),
+    db: AsyncSession = Depends(get_db)
+):
+    return await admin_service.manage_admins(
+        db=db,
+        auth_context=auth_context,
+        request=request
+    )
+

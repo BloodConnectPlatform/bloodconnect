@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 import math
 from typing import Any, Dict, List, Optional
@@ -6,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.dependencies import AdminAuthContext
 from app.models.admin_action import AdminAction
 from app.models.blood_request import BloodRequest
 from app.models.donor import DonorProfile
@@ -14,6 +16,7 @@ from app.models.enums import (
     BloodGroup,
     ReportStatus,
     RequestStatus,
+    UserRole,
 )
 from app.models.location import Location
 from app.models.report import Report
@@ -21,7 +24,11 @@ from app.models.user import User
 from app.schemas.admin import (
     AdminAuditLogResponse,
     AdminDonorResponse,
+    AdminManagementAction,
+    AdminManagementRequest,
+    AdminManagementResponse,
     AdminStatisticsResponse,
+    AdminUserSummary,
     ReportStats,
     RequestStats,
 )
@@ -31,6 +38,9 @@ from app.schemas.request import BloodRequestResponse
 
 
 class AdminService:
+    def __init__(self):
+        self._mutation_lock = asyncio.Lock()
+
     async def list_donors(
         self,
         db: AsyncSession,
@@ -485,5 +495,132 @@ class AdminService:
             pages=pages
         )
 
+    async def manage_admins(
+        self,
+        db: AsyncSession,
+        auth_context: AdminAuthContext,
+        request: AdminManagementRequest
+    ) -> AdminManagementResponse:
+        """
+        Dynamically manage platform administrators: PROMOTE, DEMOTE, or LIST.
+        Supports both Admin JWT and break-glass X-Admin-Secret.
+        Enforces last-administrator lockout protection and creates audit logs.
+        """
+        actor_id = auth_context.admin_user.id if auth_context.admin_user else None
+        actor_type = "admin_user" if auth_context.admin_user else "bootstrap_secret"
+
+        if request.action == AdminManagementAction.LIST:
+            stmt = select(User).where(User.role == UserRole.ADMIN).order_by(User.created_at.asc())
+            result = await db.execute(stmt)
+            admins = result.scalars().all()
+            admin_summaries = [AdminUserSummary.model_validate(a) for a in admins]
+            return AdminManagementResponse(
+                success=True,
+                message="Administrators retrieved successfully.",
+                action=AdminManagementAction.LIST,
+                admins=admin_summaries
+            )
+
+        # PROMOTE or DEMOTE requires target mobile
+        mobile = request.mobile
+        now = datetime.now(timezone.utc)
+
+        async with self._mutation_lock:
+            stmt = select(User).where(User.mobile == mobile)
+            res = await db.execute(stmt)
+            user = res.scalar_one_or_none()
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found."
+                )
+
+            if request.action == AdminManagementAction.PROMOTE:
+                if user.role == UserRole.ADMIN:
+                    return AdminManagementResponse(
+                        success=True,
+                        message=f"User {user.mobile} is already an administrator.",
+                        action=AdminManagementAction.PROMOTE,
+                        user=AdminUserSummary.model_validate(user)
+                    )
+
+                user.role = UserRole.ADMIN
+                audit = AdminAction(
+                    admin_id=actor_id,
+                    action="PROMOTE",
+                    target_type="user",
+                    target_id=str(user.id),
+                    details={
+                        "mobile": user.mobile,
+                        "name": user.name,
+                        "actor_type": actor_type,
+                        "previous_role": UserRole.DONOR.value if user.donor_profile else UserRole.REQUESTER.value,
+                    },
+                    created_at=now
+                )
+                db.add(audit)
+                await db.commit()
+                await db.refresh(user)
+
+                return AdminManagementResponse(
+                    success=True,
+                    message=f"User {user.name} ({user.mobile}) has been successfully promoted to administrator.",
+                    action=AdminManagementAction.PROMOTE,
+                    user=AdminUserSummary.model_validate(user)
+                )
+
+            elif request.action == AdminManagementAction.DEMOTE:
+                if user.role != UserRole.ADMIN:
+                    return AdminManagementResponse(
+                        success=True,
+                        message=f"User {user.mobile} is not an administrator.",
+                        action=AdminManagementAction.DEMOTE,
+                        user=AdminUserSummary.model_validate(user)
+                    )
+
+                # Prevent demoting the last remaining active administrator
+                count_stmt = select(func.count(User.id)).where(
+                    User.role == UserRole.ADMIN,
+                    User.is_active == True
+                )
+                admin_count = (await db.execute(count_stmt)).scalar() or 0
+                if admin_count <= 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Cannot demote the last remaining administrator."
+                    )
+
+                new_role = UserRole.DONOR if user.donor_profile else UserRole.REQUESTER
+                user.role = new_role
+                audit = AdminAction(
+                    admin_id=actor_id,
+                    action="DEMOTE",
+                    target_type="user",
+                    target_id=str(user.id),
+                    details={
+                        "mobile": user.mobile,
+                        "name": user.name,
+                        "actor_type": actor_type,
+                        "new_role": new_role.value,
+                    },
+                    created_at=now
+                )
+                db.add(audit)
+                await db.commit()
+                await db.refresh(user)
+
+                return AdminManagementResponse(
+                    success=True,
+                    message=f"Administrator {user.name} ({user.mobile}) has been demoted to {new_role.value}.",
+                    action=AdminManagementAction.DEMOTE,
+                    user=AdminUserSummary.model_validate(user)
+                )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported action: {request.action}"
+        )
+
 
 admin_service = AdminService()
+

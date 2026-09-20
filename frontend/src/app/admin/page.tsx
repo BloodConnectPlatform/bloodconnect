@@ -20,6 +20,9 @@ import {
   Clock,
   MapPin,
   Building,
+  UserPlus,
+  UserMinus,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   AdminStats,
@@ -39,12 +42,12 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, login, openLoginModal } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'DONORS' | 'REQUESTS' | 'REPORTS' | 'AUDIT'>('DONORS');
+  const [activeTab, setActiveTab] = useState<'DONORS' | 'REQUESTS' | 'REPORTS' | 'AUDIT' | 'ADMINS'>('DONORS');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
 
   // Admin Direct Login State
-  const [adminPhone, setAdminPhone] = useState('9876543210');
+  const [adminPhone, setAdminPhone] = useState('');
   const [adminOtp, setAdminOtp] = useState('');
   const [adminLoginStep, setAdminLoginStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [isAdminLoggingIn, setIsAdminLoggingIn] = useState(false);
@@ -78,6 +81,14 @@ export default function AdminDashboardPage() {
   // Audit Logs Tab State
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isAuditLoading, setIsAuditLoading] = useState(false);
+
+  // Admins Management Tab State
+  const [adminsList, setAdminsList] = useState<any[]>([]);
+  const [isAdminsLoading, setIsAdminsLoading] = useState(false);
+  const [promoteMobile, setPromoteMobile] = useState('');
+  const [isPromoting, setIsPromoting] = useState(false);
+  const [demoteTargetAdmin, setDemoteTargetAdmin] = useState<any | null>(null);
+  const [isDemoting, setIsDemoting] = useState(false);
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -142,6 +153,52 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const loadAdmins = async () => {
+    setIsAdminsLoading(true);
+    try {
+      const res = await api.manageAdmins({ action: 'LIST' });
+      if (res.admins) {
+        setAdminsList(res.admins);
+      }
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err.message || 'Failed to load administrators.' });
+    } finally {
+      setIsAdminsLoading(false);
+    }
+  };
+
+  const handlePromoteAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoteMobile.trim()) return;
+    setIsPromoting(true);
+    try {
+      const res = await api.manageAdmins({ action: 'PROMOTE', mobile: promoteMobile.trim() });
+      setNotification({ type: 'success', text: res.message || 'User promoted successfully.' });
+      setPromoteMobile('');
+      loadAdmins();
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err.message || 'Failed to promote user.' });
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
+  const handleDemoteAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!demoteTargetAdmin) return;
+    setIsDemoting(true);
+    try {
+      const res = await api.manageAdmins({ action: 'DEMOTE', mobile: demoteTargetAdmin.mobile });
+      setNotification({ type: 'success', text: res.message || 'Administrator demoted successfully.' });
+      setDemoteTargetAdmin(null);
+      loadAdmins();
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err.message || 'Failed to demote administrator.' });
+    } finally {
+      setIsDemoting(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated && user?.role === 'ADMIN') {
       loadStats();
@@ -155,6 +212,7 @@ export default function AdminDashboardPage() {
     if (activeTab === 'REQUESTS') loadRequests();
     if (activeTab === 'REPORTS') loadReports();
     if (activeTab === 'AUDIT') loadAuditLogs();
+    if (activeTab === 'ADMINS') loadAdmins();
   }, [activeTab]);
 
   const normalizePhone = (num: string) => {
@@ -312,14 +370,13 @@ export default function AdminDashboardPage() {
 
           {/* Body */}
           <div className="p-8 space-y-6">
-            {/* Quick Demo Hint */}
+            {/* Admin Login Notice */}
             <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-2xl text-xs text-purple-900 space-y-1">
               <div className="font-bold flex items-center justify-between">
-                <span>Default Admin Account:</span>
-                <span className="font-mono bg-purple-200/70 px-2 py-0.5 rounded text-[11px] font-black">+91 9876543210</span>
+                <span>Admin Authentication:</span>
               </div>
               <p className="text-[11px] text-purple-700">
-                In development mode, enter <strong>9876543210</strong> and any 6-digit OTP to authenticate.
+                Enter your provisioned administrator mobile number to receive a secure login OTP passcode.
               </p>
             </div>
 
@@ -343,7 +400,7 @@ export default function AdminDashboardPage() {
                     <input
                       type="tel"
                       maxLength={10}
-                      placeholder="9876543210"
+                      placeholder="Enter 10-digit mobile"
                       value={adminPhone.replace(/^\+91/, '')}
                       onChange={(e) => setAdminPhone(e.target.value.replace(/\D/g, ''))}
                       required
@@ -608,6 +665,23 @@ export default function AdminDashboardPage() {
           >
             <FileText className="w-3.5 h-3.5" />
             Audit Logs
+          </button>
+
+          <button
+            onClick={() => setActiveTab('ADMINS')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === 'ADMINS'
+                ? 'bg-purple-700 text-white shadow-xs'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Administrators
+            {adminsList.length > 0 && (
+              <span className="px-1.5 py-0.2 bg-purple-900 text-purple-100 rounded-full text-[10px] font-black">
+                {adminsList.length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -916,6 +990,148 @@ export default function AdminDashboardPage() {
             )}
           </div>
         )}
+
+        {/* ================= TAB 5: ADMINISTRATORS MANAGEMENT ================= */}
+        {activeTab === 'ADMINS' && (
+          <div className="space-y-6">
+            {/* Quick Promote Form */}
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
+                <UserPlus className="w-4 h-4 text-purple-700" />
+                Promote User to Administrator
+              </h3>
+              <p className="text-xs text-slate-500 mb-4">
+                Enter the registered 10-digit mobile number of an existing user to grant them administrative privileges.
+              </p>
+              <form onSubmit={handlePromoteAdmin} className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative w-full sm:w-80">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    placeholder="Enter 10-digit mobile"
+                    value={promoteMobile}
+                    onChange={(e) => setPromoteMobile(e.target.value.replace(/\D/g, ''))}
+                    required
+                    className="w-full pl-14 pr-4 py-2.5 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={isPromoting || promoteMobile.length < 10}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  {isPromoting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Promoting...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      Promote to Admin
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* Administrators Table */}
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-purple-700" />
+                    Active Platform Administrators
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Showing all users currently possessing ADMIN role privileges.
+                  </p>
+                </div>
+                <button
+                  onClick={loadAdmins}
+                  disabled={isAdminsLoading}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                >
+                  {isAdminsLoading ? 'Refreshing...' : 'Refresh List'}
+                </button>
+              </div>
+
+              {isAdminsLoading ? (
+                <div className="py-12 flex justify-center items-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                </div>
+              ) : adminsList.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-500">
+                  No administrators found.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">Administrator</th>
+                        <th className="p-3">Mobile</th>
+                        <th className="p-3">Role</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {adminsList.map((adm) => {
+                        const isSelf = user?.id === adm.id || user?.mobile === adm.mobile;
+                        return (
+                          <tr key={adm.id} className="hover:bg-slate-50/80">
+                            <td className="p-3 font-bold text-slate-900">
+                              {adm.name}
+                              {isSelf && (
+                                <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">
+                                  You
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 font-mono text-slate-800 font-bold">
+                              +91 {adm.mobile}
+                            </td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-black text-[10px]">
+                                {adm.role}
+                              </span>
+                            </td>
+                            <td className="p-3">
+                              {adm.is_active ? (
+                                <span className="text-emerald-600 font-bold flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5" /> Active
+                                </span>
+                              ) : (
+                                <span className="text-red-500 font-bold flex items-center gap-1">
+                                  <XCircle className="w-3.5 h-3.5" /> Inactive
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right">
+                              <button
+                                onClick={() => setDemoteTargetAdmin(adm)}
+                                disabled={adminsList.length <= 1}
+                                title={adminsList.length <= 1 ? "Cannot demote the last remaining administrator" : "Demote to standard role"}
+                                className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                              >
+                                <UserMinus className="w-3.5 h-3.5" />
+                                Demote
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ================= MODAL: ACTION REPORT ================= */}
@@ -1024,6 +1240,47 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ================= MODAL: DEMOTE ADMIN ================= */}
+      {demoteTargetAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="bg-purple-900 p-5 text-white flex items-center justify-between">
+              <h3 className="text-sm font-bold">Confirm Administrator Demotion</h3>
+              <button onClick={() => setDemoteTargetAdmin(null)} className="text-white/80 hover:text-white cursor-pointer">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleDemoteAdmin} className="p-6 space-y-4">
+              <p className="text-xs text-slate-700">
+                Are you sure you want to demote <strong>{demoteTargetAdmin.name}</strong> (+91 {demoteTargetAdmin.mobile}) back to standard user role?
+              </p>
+              <p className="text-[11px] text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200">
+                This user will immediately lose administrative access across all admin tools and endpoints.
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDemoteTargetAdmin(null)}
+                  className="px-3 py-1.5 text-xs text-slate-600 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isDemoting}
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  {isDemoting ? 'Demoting...' : 'Confirm Demote'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
