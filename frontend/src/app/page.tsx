@@ -22,6 +22,7 @@ import {
 import { BloodGroup, LocationItem } from '@/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { openPlatformNotice } from '@/components/common/PlatformNoticeModal';
 
 const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -46,7 +47,6 @@ export default function HomePage() {
   const [locations, setLocations] = useState<LocationItem[]>(DEFAULT_LOCATIONS);
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>('');
   const [locationQuery, setLocationQuery] = useState<string>('');
-  const [hasAcknowledgedDisclaimer, setHasAcknowledgedDisclaimer] = useState<boolean>(false);
   const [stats, setStats] = useState({
     total_donors: 148,
     available_donors: 112,
@@ -104,7 +104,7 @@ export default function HomePage() {
               Connecting Donors. Saving Lives.
             </p>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium max-w-2xl mx-auto">
-              A platform that helps connect registered blood donors with people seeking blood based on blood group and location.
+              A community platform connecting registered voluntary blood donors with people in urgent need based on blood group and location across Tamil Nadu.
             </p>
           </div>
 
@@ -256,7 +256,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= ABOUT OUR INITIATIVE & IMPORTANT NOTE ================= */}
+      {/* ================= ABOUT OUR INITIATIVE & PLATFORM NOTICE ================= */}
       <section id="about-initiative" className="py-16 md:py-20 bg-white border-b border-slate-200/60">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="space-y-4">
@@ -267,33 +267,29 @@ export default function HomePage() {
               What is Blood Connect?
             </h2>
             <p className="text-base text-slate-700 leading-relaxed font-normal">
-              Blood Connect is a student-led social initiative designed to make finding blood donors easier and faster. The platform connects registered blood donors with people seeking blood through blood group and location-based searching. Our aim is to reduce the time and difficulty involved in finding a suitable donor during a blood requirement.
+              Blood Connect is a student-led social initiative designed to make finding voluntary blood donors easier and faster. The platform connects registered blood donors with people seeking blood through blood group and location-based searching across Tamil Nadu. Our aim is to reduce the critical delay involved in finding a suitable donor during an emergency.
             </p>
           </div>
 
-          {/* Important Medical Disclaimer Box */}
-          <div id="important-note" className="p-6 md:p-8 bg-amber-50/80 rounded-3xl border border-amber-200 space-y-4 shadow-xs">
-            <div className="flex items-center gap-3 text-amber-900 font-black text-lg">
-              <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
-              <span>Important Medical Disclaimer</span>
+          {/* Clean Platform Notice Card with Trigger Button */}
+          <div className="p-6 md:p-8 bg-amber-50/90 rounded-3xl border border-amber-200 space-y-4 shadow-xs">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3 text-amber-900 font-black text-lg">
+                <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                <span>Important Medical Disclaimer</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={openPlatformNotice}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                View Full Notice
+              </button>
             </div>
             <p className="text-sm md:text-base text-amber-900 leading-relaxed font-medium">
-              Blood Connect is only a platform that connects blood donors with people seeking blood. We do not collect, store, test, or handle blood in any way. All medical checks, compatibility, donor eligibility, and the donation process must be verified and handled by the respective hospital or doctor.
+              Blood Connect is strictly an intermediary communication platform. We are <strong>NOT a blood bank</strong> and do not collect, store, test, or handle blood. All medical screenings, compatibility tests, and transfusion safety procedures must be verified by certified hospitals.
             </p>
-
-            <div className="pt-4 border-t border-amber-200/80">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={hasAcknowledgedDisclaimer}
-                  onChange={(e) => setHasAcknowledgedDisclaimer(e.target.checked)}
-                  className="w-5 h-5 rounded border-amber-300 text-red-600 focus:ring-red-500 accent-red-600 cursor-pointer"
-                />
-                <span className="text-sm font-bold text-slate-900 group-hover:text-red-600 transition-colors">
-                  I have read and understood the above information.
-                </span>
-              </label>
-            </div>
           </div>
         </div>
       </section>
@@ -326,7 +322,7 @@ export default function HomePage() {
               <div className="w-10 h-10 bg-blue-100 rounded-xl text-blue-600 flex items-center justify-center mx-auto mb-3">
                 <MapPin className="w-5 h-5" />
               </div>
-              <div className="text-3xl font-black text-slate-900">11+</div>
+              <div className="text-3xl font-black text-slate-900">{stats.total_locations}+</div>
               <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Regions Covered
               </div>

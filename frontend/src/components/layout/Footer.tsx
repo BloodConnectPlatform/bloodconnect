@@ -1,6 +1,9 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
-import { Droplet, PhoneCall, ShieldCheck, HeartHandshake, AlertCircle } from 'lucide-react';
+import { Droplet, PhoneCall, ShieldCheck, AlertCircle, AlertTriangle } from 'lucide-react';
+import { openPlatformNotice } from '@/components/common/PlatformNoticeModal';
 
 export const Footer: React.FC = () => {
   return (
@@ -56,27 +59,12 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Col 3: Quick Navigation (Section 19: Links: About Us, How It Works, Important Note) */}
+          {/* Col 3: Quick Navigation */}
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-white uppercase tracking-wider">
-              Links
+              Quick Links
             </h4>
             <ul className="space-y-2 text-xs">
-              <li>
-                <Link href="/#about-initiative" className="hover:text-red-400 transition-colors">
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link href="/#how-it-works" className="hover:text-red-400 transition-colors">
-                  How It Works
-                </Link>
-              </li>
-              <li>
-                <Link href="/#important-note" className="hover:text-red-400 transition-colors text-amber-400">
-                  Important Note
-                </Link>
-              </li>
               <li>
                 <Link href="/find-donor" className="hover:text-red-400 transition-colors">
                   Find a Donor
@@ -86,6 +74,26 @@ export const Footer: React.FC = () => {
                 <Link href="/register" className="hover:text-red-400 transition-colors">
                   Register as Donor
                 </Link>
+              </li>
+              <li>
+                <Link href="/#about-initiative" className="hover:text-red-400 transition-colors">
+                  About Our Initiative
+                </Link>
+              </li>
+              <li>
+                <Link href="/#how-it-works" className="hover:text-red-400 transition-colors">
+                  How It Works
+                </Link>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={openPlatformNotice}
+                  className="hover:text-amber-400 text-amber-300/90 transition-colors text-left cursor-pointer flex items-center gap-1"
+                >
+                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                  <span>Platform Notice & Disclaimer</span>
+                </button>
               </li>
             </ul>
           </div>
@@ -111,12 +119,15 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Mandatory Non-Blood-Bank Banner */}
-        <div className="p-4 bg-slate-800/80 rounded-xl border border-slate-700/80 mb-8">
+        {/* Mandatory Non-Blood-Bank Banner with click-to-view alert */}
+        <div
+          onClick={openPlatformNotice}
+          className="p-4 bg-slate-800/80 hover:bg-slate-800 rounded-2xl border border-slate-700/80 mb-8 cursor-pointer transition-colors"
+        >
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div className="text-xs text-slate-300 leading-relaxed">
-              <strong className="text-white">Legal & Medical Notice:</strong> Blood Connect is strictly a communication network connecting voluntary donors with requesters. Blood Connect is <strong>NOT a blood bank</strong> and does not collect, test, transport, process, or deliver blood. All compatibility checks, grouping tests, and clinical medical screenings must be conducted by licensed healthcare professionals at authorized hospitals or blood banks.
+              <strong className="text-white">Legal & Medical Notice:</strong> Blood Connect is strictly a communication network connecting voluntary donors with requesters. Blood Connect is <strong>NOT a blood bank</strong> and does not collect, test, transport, process, or deliver blood. (Click to read full notice)
             </div>
           </div>
         </div>

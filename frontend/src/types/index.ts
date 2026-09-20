@@ -78,6 +78,7 @@ export interface BloodRequest {
   donor_id?: string | number;
   blood_group?: BloodGroup;
   location?: LocationItem;
+  location_name?: string;
   patient_name?: string;
   hospital_name?: string;
   required_units?: number;

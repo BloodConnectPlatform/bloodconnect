@@ -56,13 +56,13 @@ export default function DonorDashboardPage() {
     setIsLoading(true);
     try {
       const data = await api.getDonorDashboard();
-      setProfile(data.profile);
-      setGlobalDonorProfile(data.profile);
-      setPendingRequests(data.pending_requests);
-      setAcceptedRequests(data.accepted_requests);
-      setAllRequests(data.recent_requests);
+      setProfile(data?.profile || null);
+      setGlobalDonorProfile(data?.profile || null);
+      setPendingRequests(data?.pending_requests || []);
+      setAcceptedRequests(data?.accepted_requests || []);
+      setAllRequests(data?.recent_requests || []);
 
-      if (data.profile) {
+      if (data?.profile) {
         setEditName(data.profile.full_name || data.profile.name || '');
         setEditLocationId(data.profile.location_id ?? data.profile.location?.id ?? '');
       }
@@ -308,7 +308,7 @@ export default function DonorDashboardPage() {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'PENDING' && (
+              {activeTab === 'PENDING' && (
             <div className="space-y-4">
               {pendingRequests.length === 0 ? (
                 <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-2">
@@ -319,68 +319,75 @@ export default function DonorDashboardPage() {
                   </p>
                 </div>
               ) : (
-                pendingRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="bg-white rounded-2xl p-6 border-2 border-red-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                            req.urgency === 'CRITICAL'
-                              ? 'bg-red-600 text-white'
-                              : req.urgency === 'HIGH'
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-slate-800 text-white'
-                          }`}
+                pendingRequests.map((req) => {
+                  const patientDisplayName = req.patient_name || req.requester_name || 'Emergency Patient';
+                  const hospitalDisplayName = req.hospital_name || (req.location?.name ? `Hospital in ${req.location.name}` : req.location_name || 'Hospital');
+                  const units = req.required_units || 1;
+                  const urgencyLevel = req.urgency || 'HIGH';
+
+                  return (
+                    <div
+                      key={req.id}
+                      className="bg-white rounded-2xl p-6 border-2 border-red-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                              urgencyLevel === 'CRITICAL'
+                                ? 'bg-red-600 text-white'
+                                : urgencyLevel === 'HIGH'
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-slate-800 text-white'
+                            }`}
+                          >
+                            {urgencyLevel} Urgency
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            Received {new Date(req.created_at).toLocaleString()}
+                          </span>
+                        </div>
+
+                        <h3 className="text-lg font-bold text-slate-900">
+                          {patientDisplayName} — {units} Unit(s) Needed
+                        </h3>
+
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+                          <span className="flex items-center gap-1 font-medium">
+                            <Building className="w-3.5 h-3.5 text-slate-400" />
+                            {hospitalDisplayName}
+                          </span>
+                          {req.message && (
+                            <span className="italic text-slate-500">"{req.message}"</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleRejectRequest(req.id)}
+                          disabled={actionLoadingId === req.id}
+                          className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
                         >
-                          {req.urgency} Urgency
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          Received {new Date(req.created_at).toLocaleString()}
-                        </span>
-                      </div>
+                          [ NOT AVAILABLE ]
+                        </button>
 
-                      <h3 className="text-lg font-bold text-slate-900">
-                        {req.patient_name} — {req.required_units} Unit(s) Needed
-                      </h3>
-
-                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-                        <span className="flex items-center gap-1 font-medium">
-                          <Building className="w-3.5 h-3.5 text-slate-400" />
-                          {req.hospital_name}
-                        </span>
-                        {req.message && (
-                          <span className="italic text-slate-500">"{req.message}"</span>
-                        )}
+                        <button
+                          onClick={() => handleAcceptRequest(req.id)}
+                          disabled={actionLoadingId === req.id}
+                          className="py-2.5 px-6 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs rounded-xl shadow-md shadow-red-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          {actionLoadingId === req.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          )}
+                          [ ACCEPT / I CAN HELP ]
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handleRejectRequest(req.id)}
-                        disabled={actionLoadingId === req.id}
-                        className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
-                      >
-                        [ NOT AVAILABLE ]
-                      </button>
-
-                      <button
-                        onClick={() => handleAcceptRequest(req.id)}
-                        disabled={actionLoadingId === req.id}
-                        className="py-2.5 px-6 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs rounded-xl shadow-md shadow-red-500/20 transition-all flex items-center gap-2 cursor-pointer"
-                      >
-                        {actionLoadingId === req.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        )}
-                        [ ACCEPT / I CAN HELP ]
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
@@ -396,116 +403,133 @@ export default function DonorDashboardPage() {
                   </p>
                 </div>
               ) : (
-                acceptedRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="bg-white rounded-2xl p-6 border border-emerald-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                          ACCEPTED & CONNECTED
-                        </span>
-                        <span className="text-xs text-slate-400">
-                          {new Date(req.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
+                acceptedRequests.map((req) => {
+                  const requesterPhone = req.requester_mobile || req.requester_contact;
+                  const patientDisplayName = req.patient_name || req.requester_name || 'Patient';
+                  const hospitalDisplayName = req.hospital_name || (req.location?.name ? `Hospital in ${req.location.name}` : req.location_name || 'Hospital');
+                  const units = req.required_units || 1;
 
-                      <h3 className="text-lg font-bold text-slate-900">
-                        Patient: {req.patient_name} ({req.required_units} Units)
-                      </h3>
+                  return (
+                    <div
+                      key={req.id}
+                      className="bg-white rounded-2xl p-6 border border-emerald-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                            ACCEPTED & CONNECTED
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            {new Date(req.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
 
-                      <div className="text-xs text-slate-600 font-medium">
-                        Hospital: {req.hospital_name}
-                      </div>
+                        <h3 className="text-lg font-bold text-slate-900">
+                          Patient: {patientDisplayName} ({units} Units)
+                        </h3>
 
-                      {/* Unlocked Requester Phone (From PDF Spec Page 11) */}
-                      {req.requester_contact && (
-                        <div className="mt-2 space-y-1.5 p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950">
-                          <div className="flex items-center gap-2 font-bold text-emerald-900">
-                            <Phone className="w-4 h-4 text-emerald-600" />
-                            <span>Contact Number: {req.requester_contact}</span>
+                        <div className="text-xs text-slate-600 font-medium">
+                          Hospital: {hospitalDisplayName}
+                        </div>
+
+                        {/* Unlocked Requester Phone */}
+                        {requesterPhone && (
+                          <div className="mt-2 space-y-1.5 p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200 text-xs text-emerald-950">
+                            <div className="flex items-center gap-2 font-bold text-emerald-900">
+                              <Phone className="w-4 h-4 text-emerald-600" />
+                              <span>Contact Number: {requesterPhone}</span>
+                            </div>
+                            <p className="text-[11px] text-emerald-800 leading-relaxed font-normal">
+                              Please contact each other and coordinate directly for blood donation at the hospital.
+                            </p>
                           </div>
-                          <p className="text-[11px] text-emerald-800 leading-relaxed font-normal">
-                            Please contact each other and verify all necessary details through the appropriate hospital/medical authorities.
-                          </p>
+                        )}
+                      </div>
+
+                      {requesterPhone && (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`tel:${requesterPhone}`}
+                            className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            Call Requester
+                          </a>
+                          <a
+                            href={`https://wa.me/${requesterPhone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </a>
                         </div>
                       )}
                     </div>
-
-                    {req.requester_contact && (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`tel:${req.requester_contact}`}
-                          className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
-                        >
-                          <Phone className="w-3.5 h-3.5" />
-                          Call Requester
-                        </a>
-                        <a
-                          href={`https://wa.me/${req.requester_contact.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="py-2 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          WhatsApp
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
 
           {activeTab === 'ALL' && (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
-                    <tr>
-                      <th className="p-4">Patient / Hospital</th>
-                      <th className="p-4">Units</th>
-                      <th className="p-4">Urgency</th>
-                      <th className="p-4">Status</th>
-                      <th className="p-4">Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {allRequests.map((req) => (
-                      <tr key={req.id} className="hover:bg-slate-50/80">
-                        <td className="p-4 font-bold text-slate-800">
-                          <div>{req.patient_name}</div>
-                          <div className="font-normal text-slate-500">{req.hospital_name}</div>
-                        </td>
-                        <td className="p-4 font-semibold">{req.required_units}</td>
-                        <td className="p-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                            {req.urgency}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              req.status === 'ACCEPTED'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : req.status === 'REJECTED'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-slate-100 text-slate-700'
-                            }`}
-                          >
-                            {req.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-slate-500">
-                          {new Date(req.created_at).toLocaleDateString()}
-                        </td>
+              {allRequests.length === 0 ? (
+                <div className="p-12 text-center space-y-2">
+                  <Activity className="w-10 h-10 text-slate-400 mx-auto" />
+                  <h3 className="text-base font-bold text-slate-800">No Request History</h3>
+                  <p className="text-xs text-slate-500">
+                    You haven't received any blood requests yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
+                      <tr>
+                        <th className="p-4">Patient / Hospital</th>
+                        <th className="p-4">Units</th>
+                        <th className="p-4">Urgency</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Date</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {allRequests.map((req) => (
+                        <tr key={req.id} className="hover:bg-slate-50/80">
+                          <td className="p-4 font-bold text-slate-800">
+                            <div>{req.patient_name || req.requester_name || 'Patient'}</div>
+                            <div className="font-normal text-slate-500">{req.hospital_name || (req.location?.name ? `Hospital in ${req.location.name}` : req.location_name || 'Hospital')}</div>
+                          </td>
+                          <td className="p-4 font-semibold">{req.required_units || 1}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                              {req.urgency || 'HIGH'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                req.status === 'ACCEPTED'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : req.status === 'REJECTED'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}
+                            >
+                              {req.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-slate-500">
+                            {new Date(req.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>

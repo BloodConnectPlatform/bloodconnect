@@ -5,19 +5,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
+import { openPlatformNotice } from '@/components/common/PlatformNoticeModal';
 import {
   Heart,
   Droplet,
   Search,
-  UserPlus,
   LayoutDashboard,
-  Bell,
   LogOut,
   ShieldAlert,
   Menu,
   X,
-  CheckCircle,
-  AlertCircle,
+  AlertTriangle,
+  User as UserIcon,
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -39,7 +38,8 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Logo */}
+          
+          {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform">
               <Droplet className="w-6 h-6 fill-white text-white" />
@@ -48,19 +48,19 @@ export const Navbar: React.FC = () => {
               <span className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-1">
                 Blood<span className="text-red-600">Connect</span>
               </span>
-              <span className="block text-[10px] font-semibold text-slate-400 -mt-1 tracking-wider uppercase">
+              <span className="block text-[10px] font-bold text-slate-500 -mt-1 tracking-wider uppercase">
                 Tamil Nadu Network
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-1.5">
+          <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
             <Link
               href="/"
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors ${
                 pathname === '/'
-                  ? 'text-red-600 bg-red-50/80'
+                  ? 'text-red-600 bg-red-50'
                   : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
               }`}
             >
@@ -68,69 +68,63 @@ export const Navbar: React.FC = () => {
             </Link>
 
             <Link
-              href="/#about-initiative"
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:text-red-600 hover:bg-slate-50 transition-colors"
+              href="/find-donor"
+              className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 ${
+                pathname === '/find-donor'
+                  ? 'text-red-600 bg-red-50'
+                  : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
+              }`}
             >
-              About Our Initiative
+              <Search className="w-4 h-4 text-red-600" />
+              <span>Find a Donor</span>
             </Link>
 
             <Link
               href="/register"
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+              className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 ${
                 pathname === '/register'
-                  ? 'text-red-600 bg-red-50/80'
+                  ? 'text-red-600 bg-red-50'
                   : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
               }`}
             >
               <Heart className="w-4 h-4 text-red-500" />
-              Register as Donor
+              <span>Register as Donor</span>
             </Link>
 
-            <Link
-              href="/find-donor"
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                pathname === '/find-donor'
-                  ? 'text-red-600 bg-red-50/80'
-                  : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
-              }`}
+            <button
+              type="button"
+              onClick={openPlatformNotice}
+              className="px-3 py-2 rounded-xl text-xs sm:text-sm font-bold text-amber-800 hover:text-amber-950 hover:bg-amber-50/80 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <Search className="w-4 h-4" />
-              Find a Donor
-            </Link>
-
-            <Link
-              href="/#important-note"
-              className="px-3 py-2 rounded-lg text-sm font-semibold text-amber-700 hover:text-amber-800 hover:bg-amber-50/80 transition-colors flex items-center gap-1"
-            >
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-              Important Note
-            </Link>
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+              <span>Platform Notice</span>
+            </button>
 
             {isAuthenticated && user?.role === 'ADMIN' && (
               <Link
                 href="/admin"
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 ${
                   pathname.startsWith('/admin')
                     ? 'text-purple-700 bg-purple-50'
                     : 'text-purple-600 hover:text-purple-700 hover:bg-purple-50/60'
                 }`}
               >
                 <ShieldAlert className="w-4 h-4" />
-                Admin Panel
+                <span>Admin</span>
               </Link>
             )}
 
             {isAuthenticated && user?.role === 'DONOR' && (
               <Link
                 href="/donor/dashboard"
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 ${
                   pathname.startsWith('/donor')
                     ? 'text-red-600 bg-red-50'
                     : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                Donor Hub
+                <span>Donor Hub</span>
                 {donorProfile?.is_available && (
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="Available for requests" />
                 )}
@@ -140,29 +134,26 @@ export const Navbar: React.FC = () => {
             {isAuthenticated && user?.role === 'REQUESTER' && (
               <Link
                 href="/requester/dashboard"
-                className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+                className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors flex items-center gap-1.5 ${
                   pathname.startsWith('/requester')
                     ? 'text-red-600 bg-red-50'
                     : 'text-slate-700 hover:text-red-600 hover:bg-slate-50'
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
-                My Requests
+                <span>My Requests</span>
               </Link>
             )}
           </nav>
 
-          {/* Desktop Right Action Area */}
+          {/* Desktop Right Action Area: Single Clean Sign In / User Status */}
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100/90 rounded-xl text-xs font-semibold text-slate-700 border border-slate-200">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2 px-3.5 py-1.5 bg-slate-100/90 rounded-xl text-xs font-bold text-slate-800 border border-slate-200">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span className="font-bold text-slate-900">{user?.name || 'User'}</span>
-                  <span className="text-slate-500 text-[11px]">
-                    {user?.mobile || user?.mobile_number}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                  <span className="text-slate-900">{user?.name || 'User'}</span>
+                  <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-black">
                     {user?.role}
                   </span>
                 </div>
@@ -170,35 +161,27 @@ export const Navbar: React.FC = () => {
                 <button
                   onClick={logout}
                   className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                  title="Log out"
+                  title="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={openLoginModal}
-                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-red-600 transition-colors cursor-pointer"
-                >
-                  Sign In
-                </button>
-                <Link
-                  href="/register"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-sm font-semibold rounded-xl shadow-xs shadow-red-500/20 hover:shadow-md transition-all flex items-center gap-1.5"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Donate Blood
-                </Link>
-              </div>
+              <button
+                onClick={openLoginModal}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <UserIcon className="w-4 h-4" />
+                <span>Sign In</span>
+              </button>
             )}
           </div>
 
-          {/* Mobile Menu Toggle Button */}
+          {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-slate-700 hover:text-red-600 rounded-lg hover:bg-slate-100 transition-colors"
+              className="p-2 text-slate-700 hover:text-red-600 rounded-xl hover:bg-slate-100 transition-colors"
               aria-label="Toggle Navigation"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -213,41 +196,37 @@ export const Navbar: React.FC = () => {
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-800 hover:bg-slate-50"
           >
             Home
           </Link>
           <Link
-            href="/#about-initiative"
+            href="/find-donor"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-800 hover:bg-slate-50"
           >
-            About Our Initiative
+            <Search className="w-4 h-4 text-red-600" />
+            Find a Donor
           </Link>
           <Link
             href="/register"
             onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-slate-800 hover:bg-slate-50"
           >
-            <Heart className="w-5 h-5 text-red-500" />
+            <Heart className="w-4 h-4 text-red-500" />
             Register as Donor
           </Link>
-          <Link
-            href="/find-donor"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-slate-800 hover:bg-slate-50"
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              openPlatformNotice();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-amber-800 bg-amber-50/70 hover:bg-amber-50"
           >
-            <Search className="w-5 h-5 text-red-600" />
-            Find a Donor
-          </Link>
-          <Link
-            href="/#important-note"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-amber-800 bg-amber-50/60 hover:bg-amber-50"
-          >
-            <AlertCircle className="w-5 h-5 text-amber-600" />
-            Important Note
-          </Link>
+            <AlertTriangle className="w-4 h-4 text-amber-600" />
+            Platform Notice
+          </button>
 
           {isAuthenticated ? (
             <div className="pt-3 border-t border-slate-100 space-y-2">
@@ -255,9 +234,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-purple-700 bg-purple-50"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-purple-700 bg-purple-50"
                 >
-                  <ShieldAlert className="w-5 h-5" />
+                  <ShieldAlert className="w-4 h-4" />
                   Admin Dashboard
                 </Link>
               )}
@@ -265,9 +244,9 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/donor/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-red-600 bg-red-50"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-red-600 bg-red-50"
                 >
-                  <LayoutDashboard className="w-5 h-5" />
+                  <LayoutDashboard className="w-4 h-4" />
                   Donor Hub
                 </Link>
               )}
@@ -275,13 +254,13 @@ export const Navbar: React.FC = () => {
                 <Link
                   href="/requester/dashboard"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-base font-semibold text-red-600 bg-red-50"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold text-red-600 bg-red-50"
                 >
-                  <LayoutDashboard className="w-5 h-5" />
-                  My Sent Requests
+                  <LayoutDashboard className="w-4 h-4" />
+                  My Requests
                 </Link>
               )}
-              <div className="px-3 py-2 flex items-center justify-between text-xs text-slate-600 bg-slate-50 rounded-xl">
+              <div className="px-3.5 py-2.5 flex items-center justify-between text-xs text-slate-700 bg-slate-100 rounded-xl font-medium">
                 <div>
                   <div className="font-bold text-slate-900">{user?.name || 'User'}</div>
                   <div className="text-[11px] text-slate-500">{user?.mobile || user?.mobile_number} ({user?.role})</div>
@@ -291,30 +270,24 @@ export const Navbar: React.FC = () => {
                     setMobileMenuOpen(false);
                     logout();
                   }}
-                  className="text-red-600 font-bold hover:underline"
+                  className="text-red-600 font-bold hover:underline cursor-pointer"
                 >
                   Sign Out
                 </button>
               </div>
             </div>
           ) : (
-            <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+            <div className="pt-3 border-t border-slate-100">
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   openLoginModal();
                 }}
-                className="w-full py-2.5 px-4 text-center font-semibold text-sm border border-slate-300 rounded-xl text-slate-700"
+                className="w-full py-3 px-4 text-center font-bold text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
               >
-                Sign In
+                <UserIcon className="w-4 h-4" />
+                <span>Sign In</span>
               </button>
-              <Link
-                href="/register"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full py-2.5 px-4 text-center font-semibold text-sm bg-red-600 text-white rounded-xl shadow-xs"
-              >
-                Donate Blood
-              </Link>
             </div>
           )}
         </div>

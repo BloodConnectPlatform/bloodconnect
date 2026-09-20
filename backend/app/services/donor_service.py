@@ -345,8 +345,11 @@ class DonorService:
         )
 
         # 2. Build Request Summaries with Contact Privacy Rules
-        summaries: List[DonorRequestSummary] = []
-        for req in all_requests[:20]:
+        pending_list: List[DonorRequestSummary] = []
+        accepted_list: List[DonorRequestSummary] = []
+        recent_list: List[DonorRequestSummary] = []
+
+        for req in all_requests:
             # STRICT PRIVACY RULE: Requester mobile is ONLY exposed if the donor accepted the request!
             requester_phone = (
                 req.requester.mobile
@@ -354,26 +357,37 @@ class DonorService:
                 else None
             )
 
-            summaries.append(
-                DonorRequestSummary(
-                    id=req.id,
-                    blood_group=req.blood_group,
-                    location_name=req.location.name if req.location else "Unknown",
-                    status=req.status,
-                    message=req.message,
-                    created_at=req.created_at,
-                    responded_at=req.responded_at,
-                    requester_name=req.requester.name,
-                    requester_mobile=requester_phone
-                )
+            item = DonorRequestSummary(
+                id=req.id,
+                blood_group=req.blood_group,
+                location=LocationResponse.model_validate(req.location) if req.location else None,
+                location_name=req.location.name if req.location else "Unknown",
+                patient_name=req.patient_name,
+                hospital_name=req.hospital_name,
+                status=req.status,
+                message=req.message,
+                created_at=req.created_at,
+                responded_at=req.responded_at,
+                requester_name=req.requester.name,
+                requester_mobile=requester_phone
             )
+
+            if req.status == RequestStatus.PENDING:
+                pending_list.append(item)
+            elif req.status == RequestStatus.ACCEPTED:
+                accepted_list.append(item)
+
+            if len(recent_list) < 20:
+                recent_list.append(item)
 
         profile_response = await self.get_donor_profile(db, user)
 
         return DonorDashboardResponse(
             profile=profile_response,
             stats=stats,
-            recent_requests=summaries
+            pending_requests=pending_list,
+            accepted_requests=accepted_list,
+            recent_requests=recent_list
         )
 
 

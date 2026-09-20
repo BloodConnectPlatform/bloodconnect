@@ -93,7 +93,10 @@ class DonorAvailabilityUpdateRequest(BaseModel):
 class DonorRequestSummary(BaseModel):
     id: uuid.UUID
     blood_group: BloodGroup
-    location_name: str
+    location: Optional[LocationResponse] = None
+    location_name: Optional[str] = None
+    patient_name: Optional[str] = None
+    hospital_name: Optional[str] = None
     status: RequestStatus
     message: Optional[str] = None
     created_at: datetime
@@ -117,4 +120,6 @@ class DonorDashboardStats(BaseModel):
 class DonorDashboardResponse(BaseModel):
     profile: DonorProfileResponse
     stats: DonorDashboardStats
-    recent_requests: List[DonorRequestSummary]
+    pending_requests: List[DonorRequestSummary] = []
+    accepted_requests: List[DonorRequestSummary] = []
+    recent_requests: List[DonorRequestSummary] = []
