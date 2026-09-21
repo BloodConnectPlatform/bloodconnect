@@ -145,32 +145,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
         {/* Modal Body */}
         <div className="p-6 space-y-4">
-          {/* Quick Demo Helper */}
-          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
-            <div className="font-bold text-slate-800">Quick Test Accounts:</div>
-            <div className="flex flex-wrap gap-1.5 pt-0.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileNumber('9876543220');
-                  setFullName('Priya Sharma');
-                }}
-                className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold hover:bg-rose-200 cursor-pointer"
-              >
-                Requester (9876543220)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileNumber('9876543201');
-                  setFullName('Arun Kumar');
-                }}
-                className="px-2 py-0.5 bg-red-100 text-red-800 rounded font-bold hover:bg-red-200 cursor-pointer"
-              >
-                Donor (9876543201)
-              </button>
+          {/* Quick Demo Helper (development only) */}
+          {(process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_SHOW_DEMO_ACCOUNTS === 'true') && (
+            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
+              <div className="font-bold text-slate-800">Quick Test Accounts:</div>
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNumber('9876543220');
+                    setFullName('Priya Sharma');
+                  }}
+                  className="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold hover:bg-rose-200 cursor-pointer"
+                >
+                  Requester (9876543220)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileNumber('9876543201');
+                    setFullName('Arun Kumar');
+                  }}
+                  className="px-2 py-0.5 bg-red-100 text-red-800 rounded font-bold hover:bg-red-200 cursor-pointer"
+                >
+                  Donor (9876543201)
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />

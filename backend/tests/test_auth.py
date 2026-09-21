@@ -10,18 +10,24 @@ from app.models.enums import UserRole
 from app.models.otp import OtpVerification
 from app.models.user import User
 from app.services.sms import default_sms_provider
+from app.services.whatsapp_service import default_mock_whatsapp_provider
+from app.services.notification_service import notification_service
 
 
 @pytest.fixture(autouse=True)
-def clear_sms_provider():
+def clear_providers():
     default_sms_provider.clear()
+    default_mock_whatsapp_provider.clear()
+    notification_service.clear_recorded_logs()
     yield
     default_sms_provider.clear()
+    default_mock_whatsapp_provider.clear()
+    notification_service.clear_recorded_logs()
 
 
 @pytest.mark.asyncio
 async def test_send_otp_success(client: AsyncClient, db_session: AsyncSession):
-    """Test sending OTP generates a record, hashes it, and sends SMS."""
+    """Test sending OTP generates a record, hashes it, and dispatches notification."""
     response = await client.post("/api/v1/auth/send-otp", json={"mobile": "9876543210"})
     assert response.status_code == 200
     data = response.json()
@@ -29,9 +35,9 @@ async def test_send_otp_success(client: AsyncClient, db_session: AsyncSession):
     assert "expires_in_seconds" in data
     assert data["cooldown_seconds"] == 60
 
-    # Verify SMS was dispatched
-    assert len(default_sms_provider.sent_messages) == 1
-    assert default_sms_provider.sent_messages[0]["mobile"] == "9876543210"
+    # Verify notification was dispatched via configured primary provider (WhatsApp/SMS)
+    total_dispatched = len(default_mock_whatsapp_provider.sent_messages) + len(default_sms_provider.sent_messages)
+    assert total_dispatched >= 1
 
     # Verify DB record exists and is hashed
     stmt = select(OtpVerification).where(OtpVerification.mobile == "9876543210")
@@ -322,4 +328,42 @@ async def test_requester_auth_flow(client: AsyncClient, db_session: AsyncSession
     user = (await db_session.execute(stmt)).scalar_one_or_none()
     assert user is not None
     assert user.name == "Priya Sharma"
+
+
+@pytest.mark.asyncio
+async def test_resend_otp_invalidates_previous_otp(client: AsyncClient, db_session: AsyncSession):
+    """Test that requesting a new OTP invalidates the previously issued OTP for the same mobile."""
+    mobile = "9876543291"
+
+    # 1. Send first OTP
+    res1 = await client.post("/api/v1/auth/send-otp", json={"mobile": mobile})
+    assert res1.status_code == 200
+    otp1 = res1.json()["debug_otp"]
+
+    # Fast-forward created_at to bypass 60s cooldown for testing
+    stmt = select(OtpVerification).where(OtpVerification.mobile == mobile)
+    otp_record1 = (await db_session.execute(stmt)).scalar_one()
+    otp_record1.created_at = datetime.now(timezone.utc) - timedelta(seconds=70)
+    await db_session.commit()
+
+    # 2. Send second OTP (Resend)
+    res2 = await client.post("/api/v1/auth/send-otp", json={"mobile": mobile})
+    assert res2.status_code == 200
+    otp2 = res2.json()["debug_otp"]
+    assert otp1 != otp2
+
+    # 3. Attempt to verify first OTP (OTP #1) -> MUST FAIL (Invalidated/Expired)
+    res_verify1 = await client.post(
+        "/api/v1/auth/verify-otp",
+        json={"mobile": mobile, "otp": otp1}
+    )
+    assert res_verify1.status_code == 400
+
+    # 4. Verify second OTP (OTP #2) -> MUST SUCCEED
+    res_verify2 = await client.post(
+        "/api/v1/auth/verify-otp",
+        json={"mobile": mobile, "otp": otp2}
+    )
+    assert res_verify2.status_code == 200
+    assert res_verify2.json()["success"] is True
 

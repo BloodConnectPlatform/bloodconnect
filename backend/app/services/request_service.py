@@ -125,7 +125,7 @@ class RequestService:
         db.add(blood_request)
         await db.flush()
 
-        # 8. Notify the Donor User
+        # 8. Notify the Donor User (In-app + WhatsApp/SMS)
         await notification_service.create_notification(
             db=db,
             user_id=donor.user_id,
@@ -133,6 +133,19 @@ class RequestService:
             title="New Blood Donation Request",
             message=f"You have received an urgent {req_blood_group.value} blood request in {location.name}."
         )
+        try:
+            await notification_service.send_blood_request(
+                donor_mobile=donor.user.mobile,
+                blood_group=req_blood_group.value,
+                location_name=location.name,
+                patient_name=clean_patient_name,
+                hospital_name=data.hospital_name,
+                request_id=blood_request.id,
+                user_id=donor.user_id,
+                db=db
+            )
+        except Exception:
+            pass
 
         await db.commit()
         await db.refresh(blood_request)
@@ -338,7 +351,7 @@ class RequestService:
         req.status = RequestStatus.ACCEPTED
         req.responded_at = now
 
-        # Send notification to requester
+        # Send notification to requester (In-app + WhatsApp/SMS)
         await notification_service.create_notification(
             db=db,
             user_id=req.requester_id,
@@ -346,6 +359,18 @@ class RequestService:
             title="Blood Request Accepted!",
             message=f"Donor {donor_user.name} has accepted your {req.blood_group.value} blood request."
         )
+        try:
+            await notification_service.send_request_accepted(
+                requester_mobile=req.requester.mobile,
+                donor_name=donor_user.name,
+                donor_mobile=donor_user.mobile,
+                blood_group=req.blood_group.value,
+                request_id=req.id,
+                user_id=req.requester_id,
+                db=db
+            )
+        except Exception:
+            pass
 
         await db.commit()
         await db.refresh(req)
@@ -408,7 +433,7 @@ class RequestService:
         req.status = RequestStatus.REJECTED
         req.responded_at = now
 
-        # Send notification to requester
+        # Send notification to requester (In-app + WhatsApp/SMS)
         await notification_service.create_notification(
             db=db,
             user_id=req.requester_id,
@@ -416,6 +441,16 @@ class RequestService:
             title="Blood Request Declined",
             message=f"The donor was unable to accept your {req.blood_group.value} blood request at this time."
         )
+        try:
+            await notification_service.send_request_rejected(
+                requester_mobile=req.requester.mobile,
+                blood_group=req.blood_group.value,
+                request_id=req.id,
+                user_id=req.requester_id,
+                db=db
+            )
+        except Exception:
+            pass
 
         await db.commit()
         await db.refresh(req)
@@ -467,6 +502,7 @@ class RequestService:
         # If request was PENDING or ACCEPTED, notify the donor that the request has been cancelled / fulfilled
         if req.status in [RequestStatus.PENDING, RequestStatus.ACCEPTED]:
             donor_user_id = req.donor.user_id if req.donor else None
+            donor_mobile = req.donor.user.mobile if req.donor and req.donor.user else None
             if donor_user_id:
                 try:
                     patient_str = f" for patient '{req.patient_name}'" if req.patient_name else ""
@@ -477,6 +513,16 @@ class RequestService:
                         title="Blood Request Cancelled",
                         message=f"The {req.blood_group.value} blood request{patient_str} from {req.requester.name} was cancelled as the requirement was fulfilled or no longer needed."
                     )
+                    if donor_mobile:
+                        await notification_service.send_request_cancelled(
+                            donor_mobile=donor_mobile,
+                            requester_name=req.requester.name,
+                            blood_group=req.blood_group.value,
+                            patient_name=req.patient_name,
+                            request_id=req.id,
+                            user_id=donor_user_id,
+                            db=db
+                        )
                 except Exception:
                     pass
 

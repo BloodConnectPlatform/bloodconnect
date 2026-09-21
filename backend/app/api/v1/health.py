@@ -41,7 +41,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
         "environment": settings.ENVIRONMENT,
         "version": "1.0.0",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "error": error_msg,
+        "error": None if settings.is_production else error_msg,
     }
 
     return JSONResponse(status_code=http_status, content=payload)

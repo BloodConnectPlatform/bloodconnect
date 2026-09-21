@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.api.v1.router import api_router
+from app.api.webhooks import router as webhooks_router
 from app.database.session import engine, AsyncSessionLocal
 from app.database.base import Base
 from app.seeds.locations import seed_locations
@@ -40,8 +41,8 @@ app = FastAPI(
     title=settings.APP_NAME,
     description="Blood Connect — Donor discovery and connection platform REST API.",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
     lifespan=lifespan
 )
 
@@ -57,17 +58,19 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# Include API v1 Router
+# Include API v1 Router & Webhooks Router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+app.include_router(webhooks_router)
 
 
 @app.api_route("/", methods=["GET", "HEAD"], tags=["Root"])
 async def root():
-    return JSONResponse(
-        content={
-            "name": settings.APP_NAME,
-            "version": "1.0.0",
-            "documentation": "/docs",
-            "health": f"{settings.API_V1_PREFIX}/health"
-        }
-    )
+    content = {
+        "name": settings.APP_NAME,
+        "version": "1.0.0",
+        "status": "online",
+        "health": f"{settings.API_V1_PREFIX}/health"
+    }
+    if not settings.is_production:
+        content["documentation"] = "/docs"
+    return JSONResponse(content=content)

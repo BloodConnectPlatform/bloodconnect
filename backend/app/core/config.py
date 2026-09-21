@@ -1,5 +1,5 @@
 from typing import Any, List, Union
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import AnyHttpUrl, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
 import json
@@ -10,6 +10,28 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
+
+    @property
+    def is_production(self) -> bool:
+        """Check if current environment is production."""
+        return str(self.ENVIRONMENT).strip().lower() in ("production", "prod")
+
+    @property
+    def is_development(self) -> bool:
+        """Check if current environment is development."""
+        return str(self.ENVIRONMENT).strip().lower() in ("development", "dev", "local")
+
+    @property
+    def is_testing(self) -> bool:
+        """Check if current environment is testing."""
+        return str(self.ENVIRONMENT).strip().lower() in ("test", "testing")
+
+    @model_validator(mode="after")
+    def enforce_production_security(self) -> "Settings":
+        """Strictly force DEBUG = False in production to guarantee no debug OTP or stack trace leaks."""
+        if self.is_production:
+            self.DEBUG = False
+        return self
 
     # Security & Authentication
     SECRET_KEY: str = "dev_blood_connect_super_secret_jwt_key_change_in_production_32bytes!"
@@ -31,6 +53,38 @@ class Settings(BaseSettings):
     # Admin Bootstrap & Secret Configuration
     ADMIN_BOOTSTRAP_SECRET: str = ""
     INITIAL_ADMIN_PHONE_NUMBERS: Union[List[str], str] = []
+
+    # Communication & Public URLs
+    PUBLIC_API_URL: str = "http://localhost:8000"
+    NOTIFICATION_PROVIDER: str = "mock"  # "mock", "meta", "msg91", "live"
+    NOTIFICATION_PRIMARY_CHANNEL: str = "whatsapp"  # "whatsapp", "sms"
+    NOTIFICATION_SMS_FALLBACK: bool = True
+
+    # WhatsApp / Meta Cloud API
+    WHATSAPP_PROVIDER: str = "mock"  # "mock", "meta"
+    META_WA_ACCESS_TOKEN: str = ""
+    META_WA_PHONE_NUMBER_ID: str = ""
+    META_WA_BUSINESS_ACCOUNT_ID: str = ""
+    META_APP_ID: str = ""
+    META_APP_SECRET: str = ""
+    META_GRAPH_API_VERSION: str = "v21.0"
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: str = "dev_wa_verify_token_change_in_production!"
+    WEBHOOK_VERIFY_SIGNATURE: bool = True
+
+    # WhatsApp Templates (Configurable)
+    WHATSAPP_TEMPLATE_LANGUAGE: str = "en_US"
+    WHATSAPP_TEMPLATE_AUTH_OTP: str = "bloodconnect_auth_otp"
+    WHATSAPP_TEMPLATE_BLOOD_REQUEST: str = "bloodconnect_blood_request"
+    WHATSAPP_TEMPLATE_REQUEST_ACCEPTED: str = "bloodconnect_request_accepted"
+    WHATSAPP_TEMPLATE_REQUEST_REJECTED: str = "bloodconnect_request_rejected"
+    WHATSAPP_TEMPLATE_REQUEST_CANCELLED: str = "bloodconnect_request_cancelled"
+    WHATSAPP_TEMPLATE_REQUEST_REMINDER: str = "bloodconnect_request_reminder"
+
+    # SMS Configuration (MSG91 / Configurable)
+    SMS_PROVIDER: str = "mock"  # "mock", "msg91"
+    MSG91_AUTH_KEY: str = ""
+    MSG91_SENDER_ID: str = "BLDCON"
+    MSG91_OTP_TEMPLATE_ID: str = ""
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

@@ -59,3 +59,23 @@ class AdminActionType(str, Enum):
     DEMOTE = "DEMOTE"
     OTHER = "OTHER"
 
+
+class NotificationChannel(str, Enum):
+    WHATSAPP = "WHATSAPP"
+    SMS = "SMS"
+
+
+class NotificationDeliveryStatus(str, Enum):
+    PENDING = "PENDING"
+    SENT = "SENT"
+    DELIVERED = "DELIVERED"
+    READ = "READ"
+    FAILED = "FAILED"
+
+
+class WebhookEventStatus(str, Enum):
+    PROCESSED = "PROCESSED"
+    DUPLICATE = "DUPLICATE"
+    FAILED = "FAILED"
+    IGNORED = "IGNORED"
+

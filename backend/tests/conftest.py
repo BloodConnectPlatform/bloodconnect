@@ -30,6 +30,17 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def configure_test_settings():
+    """Ensure tests always run in mock mode, test environment, and debug mode."""
+    from app.core.config import settings
+    settings.ENVIRONMENT = "test"
+    settings.NOTIFICATION_PROVIDER = "mock"
+    settings.WHATSAPP_PROVIDER = "mock"
+    settings.SMS_PROVIDER = "mock"
+    settings.DEBUG = True
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for each test case."""
