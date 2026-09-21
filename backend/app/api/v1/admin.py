@@ -14,6 +14,8 @@ from app.schemas.admin import (
     AdminManagementResponse,
     AdminStatisticsResponse,
     AdminUpdateReportRequest,
+    AdminWhatsAppTestRequest,
+    AdminWhatsAppTestResponse,
 )
 from app.schemas.common import APIResponse, PaginatedResponse
 from app.schemas.donor import DonorAvailabilityUpdateRequest
@@ -237,5 +239,25 @@ async def manage_admins(
         db=db,
         auth_context=auth_context,
         request=request
+    )
+
+
+@router.post(
+    "/test-whatsapp",
+    response_model=AdminWhatsAppTestResponse,
+    summary="Admin WhatsApp Integration Diagnostic Test",
+    description="Sends a pre-approved template (default: hello_world) to verify WhatsApp Meta Cloud API configuration. Protected by Admin JWT or X-Admin-Secret."
+)
+async def test_whatsapp(
+    request: AdminWhatsAppTestRequest,
+    auth_context: AdminAuthContext = Depends(require_admin_or_bootstrap_secret),
+    db: AsyncSession = Depends(get_db)
+):
+    return await admin_service.test_whatsapp(
+        db=db,
+        auth_context=auth_context,
+        recipient_mobile=request.recipient_mobile,
+        template_name=request.template_name or "hello_world",
+        language_code=request.language_code or "en_US"
     )
 

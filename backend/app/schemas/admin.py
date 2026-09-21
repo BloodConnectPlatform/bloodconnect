@@ -114,3 +114,27 @@ class AdminStatisticsResponse(BaseModel):
     donors_by_location: Dict[str, int]
     requests: RequestStats
     reports: ReportStats
+
+
+class AdminWhatsAppTestRequest(BaseModel):
+    recipient_mobile: str = Field(..., description="10-digit Indian recipient mobile number (e.g. 9876543210)")
+    template_name: Optional[str] = Field("hello_world", description="Meta pre-approved template name (default: hello_world)")
+    language_code: Optional[str] = Field("en_US", description="Template language code (e.g., en_US or en)")
+
+    @field_validator("recipient_mobile")
+    @classmethod
+    def validate_mobile(cls, v: str) -> str:
+        return validate_indian_mobile(v)
+
+
+class AdminWhatsAppTestResponse(BaseModel):
+    success: bool
+    message: str
+    provider: str
+    provider_message_id: Optional[str] = None
+    recipient: str
+    template_used: str
+    phone_number_id_configured: bool
+    access_token_configured: bool
+    details: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None

@@ -29,6 +29,8 @@ from app.schemas.admin import (
     AdminManagementResponse,
     AdminStatisticsResponse,
     AdminUserSummary,
+    AdminWhatsAppTestRequest,
+    AdminWhatsAppTestResponse,
     ReportStats,
     RequestStats,
 )
@@ -619,6 +621,79 @@ class AdminService:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unsupported action: {request.action}"
+        )
+
+    async def test_whatsapp(
+        self,
+        db: AsyncSession,
+        auth_context: AdminAuthContext,
+        recipient_mobile: str,
+        template_name: str = "hello_world",
+        language_code: str = "en_US"
+    ) -> AdminWhatsAppTestResponse:
+        """Send a diagnostic test template message via WhatsApp Meta Cloud API without exposing credentials."""
+        from app.core.config import settings
+        from app.services.whatsapp_service import MetaWhatsAppProvider, get_whatsapp_provider
+
+        actor_id = auth_context.admin_user.id if auth_context.admin_user else None
+        actor_name = auth_context.admin_user.name if auth_context.admin_user else "Bootstrap Secret"
+
+        is_token_set = bool(settings.META_WA_ACCESS_TOKEN and settings.META_WA_ACCESS_TOKEN.strip())
+        is_phone_set = bool(settings.META_WA_PHONE_NUMBER_ID and settings.META_WA_PHONE_NUMBER_ID.strip())
+
+        # In test mode or when NOTIFICATION_PROVIDER is explicitly 'mock', use get_whatsapp_provider()
+        if settings.is_testing or settings.NOTIFICATION_PROVIDER == "mock":
+            provider = get_whatsapp_provider()
+        elif is_token_set and is_phone_set:
+            provider = MetaWhatsAppProvider()
+        else:
+            provider = get_whatsapp_provider()
+
+        result = await provider.send_template(
+            to_mobile=recipient_mobile,
+            template_name=template_name,
+            language_code=language_code
+        )
+
+        # Audit log the diagnostic test attempt
+        now = datetime.now(timezone.utc)
+        masked_mobile = f"+91 {recipient_mobile[:2]}******{recipient_mobile[-2:]}" if len(recipient_mobile) == 10 else f"{recipient_mobile[:4]}******{recipient_mobile[-2:]}"
+
+        audit = AdminAction(
+            admin_id=actor_id,
+            action="TEST_WHATSAPP_DISPATCH",
+            target_type="whatsapp",
+            target_id=masked_mobile,
+            details={
+                "actor": actor_name,
+                "provider": result.provider,
+                "success": result.success,
+                "provider_message_id": result.provider_message_id,
+                "error_message": result.error_message,
+                "template_name": template_name,
+            },
+            created_at=now
+        )
+        db.add(audit)
+        await db.commit()
+
+        status_msg = (
+            f"Test template '{template_name}' sent successfully via {result.provider}."
+            if result.success
+            else f"WhatsApp test dispatch failed via {result.provider}: {result.error_message}"
+        )
+
+        return AdminWhatsAppTestResponse(
+            success=result.success,
+            message=status_msg,
+            provider=result.provider,
+            provider_message_id=result.provider_message_id,
+            recipient=masked_mobile,
+            template_used=template_name,
+            phone_number_id_configured=is_phone_set,
+            access_token_configured=is_token_set,
+            details=result.details,
+            error_message=result.error_message
         )
 
 

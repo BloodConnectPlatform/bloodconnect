@@ -242,3 +242,59 @@ async def test_admin_delete_donor(client: AsyncClient, setup_admin_and_data, db_
     check_stmt = select(DonorProfile).where(DonorProfile.id == fake_donor_id)
     check_res = await db_session.execute(check_stmt)
     assert check_res.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_admin_test_whatsapp_with_jwt(client: AsyncClient, setup_admin_and_data):
+    """Test admin invoking the WhatsApp diagnostic test endpoint with JWT."""
+    data = setup_admin_and_data
+    admin_headers = {"Authorization": f"Bearer {data['admin_token']}"}
+
+    payload = {
+        "recipient_mobile": "9876543201",
+        "template_name": "hello_world",
+        "language_code": "en_US"
+    }
+    res = await client.post("/api/v1/admin/test-whatsapp", headers=admin_headers, json=payload)
+    assert res.status_code == 200
+    res_data = res.json()
+    assert res_data["success"] is True
+    assert res_data["template_used"] == "hello_world"
+    assert "provider" in res_data
+    assert "provider_message_id" in res_data
+    assert "recipient" in res_data
+
+
+@pytest.mark.asyncio
+async def test_admin_test_whatsapp_with_secret(client: AsyncClient, monkeypatch):
+    """Test invoking WhatsApp diagnostic test with X-Admin-Secret header."""
+    from app.core.config import settings
+    test_secret = "test_bootstrap_secret_123456789012"
+    monkeypatch.setattr(settings, "ADMIN_BOOTSTRAP_SECRET", test_secret)
+
+    headers = {"X-Admin-Secret": test_secret}
+    payload = {
+        "recipient_mobile": "9876543220",
+        "template_name": "hello_world"
+    }
+    res = await client.post("/api/v1/admin/test-whatsapp", headers=headers, json=payload)
+    assert res.status_code == 200
+    assert res.json()["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_admin_test_whatsapp_unauthenticated_blocked(client: AsyncClient):
+    """Test unauthenticated requests to WhatsApp test endpoint are rejected."""
+    payload = {"recipient_mobile": "9876543220"}
+    res = await client.post("/api/v1/admin/test-whatsapp", json=payload)
+    assert res.status_code in (401, 403)
+
+
+@pytest.mark.asyncio
+async def test_admin_test_whatsapp_non_admin_blocked(client: AsyncClient, setup_admin_and_data):
+    """Test non-admin user cannot access WhatsApp diagnostic test endpoint."""
+    data = setup_admin_and_data
+    req_headers = {"Authorization": f"Bearer {data['req_token']}"}
+    payload = {"recipient_mobile": "9876543220"}
+    res = await client.post("/api/v1/admin/test-whatsapp", headers=req_headers, json=payload)
+    assert res.status_code == 403
