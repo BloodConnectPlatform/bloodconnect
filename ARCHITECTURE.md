@@ -1,4 +1,9 @@
-# Blood Connect — System Architecture & Data Layer (Phase 1)
+<p align="center">
+  <img src="assets/logo-transparent.png" alt="Blood Connect Logo" width="180" />
+</p>
+
+# Blood Connect — System Architecture & Data Layer
+**Connecting Donors. Reaching Those in Need.**
 
 ## 1. Overview & Purpose
 

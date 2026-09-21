@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { X, Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, User as UserIcon } from 'lucide-react';
@@ -130,8 +131,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="w-12 h-12 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs">
-            {step === 'PHONE' ? <Phone className="w-6 h-6 text-white" /> : <KeyRound className="w-6 h-6 text-white" />}
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs p-1.5 border border-white/20 shadow-md">
+            <Image
+              src="/logo-icon.png"
+              alt="Blood Connect"
+              width={46}
+              height={46}
+              className="object-contain"
+            />
           </div>
           <h3 className="text-xl font-bold">
             {step === 'PHONE' ? 'Sign In / Quick Requester Sign Up' : 'Verify Mobile OTP'}

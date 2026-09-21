@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -41,15 +42,22 @@ export const Navbar: React.FC = () => {
           
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-500 flex items-center justify-center text-white shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform">
-              <Droplet className="w-6 h-6 fill-white text-white" />
+            <div className="w-11 h-11 rounded-2xl bg-white border border-red-100 shadow-sm flex items-center justify-center p-1 group-hover:scale-105 group-hover:border-red-300 transition-all">
+              <Image
+                src="/logo-icon.png"
+                alt="Blood Connect Logo"
+                width={38}
+                height={38}
+                className="object-contain"
+                priority
+              />
             </div>
             <div>
               <span className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-1">
                 Blood<span className="text-red-600">Connect</span>
               </span>
               <span className="block text-[10px] font-bold text-slate-500 -mt-1 tracking-wider uppercase">
-                Tamil Nadu Network
+                Coimbatore Network
               </span>
             </div>
           </Link>

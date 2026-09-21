@@ -69,7 +69,7 @@ export const PlatformNoticeModal: React.FC = () => {
         {/* Content Body */}
         <div className="p-6 space-y-4 text-slate-700">
           <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 font-semibold leading-relaxed">
-            Blood Connect is an emergency intermediary communication platform connecting voluntary donors with patients in Tamil Nadu.
+            Blood Connect is an emergency intermediary communication platform connecting voluntary donors with patients across Coimbatore.
           </div>
 
           <div className="space-y-3 text-xs leading-relaxed">

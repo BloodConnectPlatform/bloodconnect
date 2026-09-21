@@ -388,10 +388,10 @@ function FindDonorContent() {
             <span>Search & Discover Donors</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Find Blood Donors in Tamil Nadu
+            Find Blood Donors in Coimbatore
           </h1>
           <p className="text-sm text-slate-600">
-            Search voluntary donors by blood type and location. Contact details are strictly protected until the donor accepts your request.
+            Search voluntary donors by blood type and location across Coimbatore. Contact details are strictly protected until the donor accepts your request.
           </p>
         </div>
 

@@ -1,6 +1,11 @@
-# Blood Connect
+<p align="center">
+  <img src="assets/logo-transparent.png" alt="Blood Connect Logo" width="220" />
+</p>
 
-A donor discovery and connection platform designed to connect registered, verified blood donors with people seeking blood based on blood group and location.
+# Blood Connect
+**Connecting Donors. Reaching Those in Need.**
+
+A community-driven voluntary blood donor discovery and connection network designed to connect registered, verified blood donors with people seeking blood based on blood group and location across Coimbatore.
 
 > **Disclaimer**: Blood Connect is purely a connection platform and **NOT a blood bank**. It does not collect, store, test, transport, or handle blood. All medical checks, compatibility verification, and donation procedures must be carried out by authorized hospitals and medical professionals.
 

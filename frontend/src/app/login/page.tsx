@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, Heart, ArrowRight, User as UserIcon } from 'lucide-react';
@@ -104,8 +105,14 @@ export default function LoginPage() {
     <div className="flex-1 bg-slate-50 flex items-center justify-center py-12 px-4 sm:px-6">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
         <div className="bg-gradient-to-r from-red-600 to-rose-700 p-8 text-white text-center">
-          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs">
-            {step === 'PHONE' ? <Phone className="w-6 h-6 text-white" /> : <KeyRound className="w-6 h-6 text-white" />}
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs p-1.5 border border-white/20 shadow-md">
+            <Image
+              src="/logo-icon.png"
+              alt="Blood Connect"
+              width={46}
+              height={46}
+              className="object-contain"
+            />
           </div>
           <h2 className="text-2xl font-black">
             {step === 'PHONE' ? 'Sign In / Quick Requester Access' : 'Verify Mobile OTP'}
