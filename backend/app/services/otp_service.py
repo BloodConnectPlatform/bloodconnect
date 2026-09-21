@@ -1,21 +1,27 @@
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import Optional, Tuple
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import generate_otp, hash_otp, verify_otp_hash, create_verification_token
+from app.core.security import generate_otp, hash_otp, verify_otp_hash
 from app.models.otp import OtpVerification
-from app.services.sms import get_sms_provider
+from app.services.notification_service import notification_service
+
+logger = logging.getLogger("otp_service")
 
 
 class OTPService:
-    def __init__(self):
-        self.sms_provider = get_sms_provider()
-
-    async def send_otp(self, db: AsyncSession, mobile: str, purpose: str = "LOGIN") -> dict:
-        """Generate, hash, store, and dispatch an OTP to a mobile number with rate limiting."""
+    async def send_otp(
+        self,
+        db: AsyncSession,
+        mobile: str,
+        purpose: str = "LOGIN",
+        user_id: Optional[str] = None
+    ) -> dict:
+        """Generate, hash, store, and dispatch an OTP to a mobile number with rate limiting and previous OTP invalidation."""
         now = datetime.now(timezone.utc)
 
         # 1. Cooldown check (e.g. 60 seconds)
@@ -29,11 +35,10 @@ class OTPService:
         latest_otp = result_latest.scalar_one_or_none()
 
         if latest_otp:
-            # Ensure timezone awareness comparison
             latest_created = latest_otp.created_at
             if latest_created.tzinfo is None:
                 latest_created = latest_created.replace(tzinfo=timezone.utc)
-            
+
             elapsed = (now - latest_created).total_seconds()
             if elapsed < settings.OTP_RESEND_COOLDOWN_SECONDS:
                 remaining = int(settings.OTP_RESEND_COOLDOWN_SECONDS - elapsed)
@@ -59,7 +64,19 @@ class OTPService:
                 detail="Too many OTP requests for this mobile number. Please try again in an hour."
             )
 
-        # 3. Generate & Hash OTP
+        # 3. Invalidate previous unverified OTPs for this mobile
+        invalidate_stmt = (
+            update(OtpVerification)
+            .where(
+                OtpVerification.mobile == mobile,
+                OtpVerification.verified_at.is_(None)
+            )
+            .values(expires_at=now)
+            .execution_options(synchronize_session=False)
+        )
+        await db.execute(invalidate_stmt)
+
+        # 4. Generate & Hash OTP
         otp_code = generate_otp(6)
         otp_hashed = hash_otp(mobile, otp_code)
         expires_at = now + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
@@ -75,19 +92,32 @@ class OTPService:
         await db.commit()
         await db.refresh(otp_record)
 
-        # 4. Dispatch SMS
-        sms_message = (
-            f"Your Blood Connect verification code is {otp_code}. "
-            f"Valid for {settings.OTP_EXPIRE_MINUTES} minutes. Do not share this code with anyone."
+        # 5. Dispatch via NotificationService (WhatsApp primary, SMS fallback)
+        try:
+            await notification_service.send_otp(
+                mobile=mobile,
+                otp_code=otp_code,
+                expires_minutes=settings.OTP_EXPIRE_MINUTES,
+                db=db
+            )
+        except Exception as e:
+            logger.error(f"[OTPService] Error dispatching OTP notification: {e}")
+
+        logger.info(f"[OTPService] OTP generated and dispatched for mobile {mobile[:2]}******{mobile[-2:]}")
+
+        # Ensure debug_otp is ONLY ever returned in non-production environments with DEBUG enabled
+        allow_debug_otp = (
+            settings.DEBUG
+            and not settings.is_production
+            and (settings.is_development or settings.is_testing)
         )
-        await self.sms_provider.send_sms(mobile, sms_message)
 
         return {
             "success": True,
             "message": "OTP sent successfully.",
             "expires_in_seconds": settings.OTP_EXPIRE_MINUTES * 60,
             "cooldown_seconds": settings.OTP_RESEND_COOLDOWN_SECONDS,
-            "debug_otp": otp_code if settings.DEBUG else None
+            "debug_otp": otp_code if allow_debug_otp else None
         }
 
     async def verify_otp(

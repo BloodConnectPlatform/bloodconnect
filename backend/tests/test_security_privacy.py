@@ -382,3 +382,37 @@ async def test_invariant_10_immutable_request_states(
     # Accepting rejected request fails
     res_rej_to_acc = await client.patch(f"/api/v1/requests/{r2_id}/accept", headers=donor_headers)
     assert res_rej_to_acc.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_production_environment_security_enforcement(db_session: AsyncSession, monkeypatch):
+    """Verify that in production mode, DEBUG is forced to False and debug_otp is strictly omitted."""
+    from app.core.config import Settings, settings
+    from app.services.otp_service import otp_service
+
+    # 1. Test Settings model validator forces DEBUG=False when ENVIRONMENT=production
+    prod_settings = Settings(ENVIRONMENT="production", DEBUG=True)
+    assert prod_settings.DEBUG is False
+    assert prod_settings.is_production is True
+    assert prod_settings.is_development is False
+
+    # 2. Test send_otp strictly suppresses debug_otp when ENVIRONMENT=production
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "DEBUG", False)
+
+    otp_res = await otp_service.send_otp(db_session, mobile="9876543299", purpose="LOGIN")
+    assert otp_res["success"] is True
+    assert otp_res["debug_otp"] is None
+
+
+@pytest.mark.asyncio
+async def test_production_health_check_masks_internal_errors(client: AsyncClient, monkeypatch):
+    """Verify that in production mode, health check endpoint masks internal errors."""
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    res = await client.get("/api/v1/health")
+    assert res.status_code == 200
+    assert res.json()["error"] is None
+    assert "status" in res.json()
+
