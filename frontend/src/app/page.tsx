@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   Droplet,
@@ -91,7 +92,20 @@ export default function HomePage() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Main Title & Slogan */}
-          <div className="text-center max-w-3xl mx-auto space-y-3 mb-10 md:mb-12">
+          <div className="text-center max-w-3xl mx-auto space-y-4 mb-10 md:mb-12">
+            <div className="flex justify-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white rounded-3xl p-2 shadow-lg shadow-red-500/10 border border-slate-100 ring-4 ring-red-50 flex items-center justify-center group hover:scale-105 transition-transform duration-300">
+                <Image
+                  src="/logo-icon.png"
+                  alt="Blood Connect Logo"
+                  width={80}
+                  height={80}
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
+
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-100/80 text-red-700 text-xs font-bold uppercase tracking-wider">
               <Droplet className="w-3.5 h-3.5 fill-red-600 text-red-600" />
               <span>Emergency Blood Matching Initiative</span>
@@ -101,10 +115,10 @@ export default function HomePage() {
               BLOOD CONNECT
             </h1>
             <p className="text-xl sm:text-2xl font-bold text-red-600">
-              Connecting Donors. Saving Lives.
+              Connecting Donors. Reaching Those in Need.
             </p>
             <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium max-w-2xl mx-auto">
-              A community platform connecting registered voluntary blood donors with people in urgent need based on blood group and location across Tamil Nadu.
+              A community platform connecting registered voluntary blood donors with people in urgent need based on blood group and location across Coimbatore.
             </p>
           </div>
 
@@ -267,7 +281,7 @@ export default function HomePage() {
               What is Blood Connect?
             </h2>
             <p className="text-base text-slate-700 leading-relaxed font-normal">
-              Blood Connect is a student-led social initiative designed to make finding voluntary blood donors easier and faster. The platform connects registered blood donors with people seeking blood through blood group and location-based searching across Tamil Nadu. Our aim is to reduce the critical delay involved in finding a suitable donor during an emergency.
+              Blood Connect is a student-led social initiative designed to make finding voluntary blood donors easier and faster. The platform connects registered blood donors with people seeking blood through blood group and location-based searching across Coimbatore. Our aim is to reduce the critical delay involved in finding a suitable donor during an emergency.
             </p>
           </div>
 
@@ -364,7 +378,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Search by Blood Group & Location</h3>
               <p className="text-sm text-slate-600 leading-relaxed flex-1">
-                Filter donors by required blood group and any preferred location in Tamil Nadu. Privacy is strictly safeguarded: donor contact numbers remain concealed during public search.
+                Filter donors by required blood group and any preferred location in Coimbatore. Privacy is strictly safeguarded: donor contact numbers remain concealed during public search.
               </p>
               <div className="mt-6 pt-4 border-t border-slate-200 flex items-center gap-2 text-xs font-semibold text-slate-500">
                 <Shield className="w-4 h-4 text-emerald-600" />

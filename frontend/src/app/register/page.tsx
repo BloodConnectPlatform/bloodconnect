@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   Heart,
   Droplet,
@@ -194,8 +195,14 @@ export default function DonorRegistrationPage() {
           {/* Header */}
           <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-6 md:p-8 text-white relative">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white backdrop-blur-xs">
-                <Heart className="w-5 h-5 fill-white" />
+              <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white backdrop-blur-xs p-1 border border-white/20 shadow-xs">
+                <Image
+                  src="/logo-icon.png"
+                  alt="Blood Connect"
+                  width={32}
+                  height={32}
+                  className="object-contain"
+                />
               </div>
               <span className="text-xs font-bold uppercase tracking-widest text-rose-200">
                 Join the Network

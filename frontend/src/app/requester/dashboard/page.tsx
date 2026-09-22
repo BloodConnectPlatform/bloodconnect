@@ -395,7 +395,7 @@ export default function RequesterDashboardPage() {
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-slate-900">No requests sent yet</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Search registered blood donors in Tamil Nadu and send a request when blood is needed.
+                    Search registered blood donors in Coimbatore and send a request when blood is needed.
                   </p>
                 </div>
                 <Link
@@ -422,7 +422,7 @@ export default function RequesterDashboardPage() {
                 {filteredRequests.map((req) => {
                   const reqBloodGroup = req.blood_group || req.donor?.blood_group || 'Blood';
                   const donorName = req.donor_name || req.donor?.full_name || req.donor?.name || 'Voluntary Donor';
-                  const locationName = req.location?.name || req.donor?.location?.name || 'Tamil Nadu';
+                  const locationName = req.location?.name || req.donor?.location?.name || 'Coimbatore';
                   const phone = req.donor_mobile || req.donor_contact;
                   const isAccepted = req.status === 'ACCEPTED';
                   const isPending = req.status === 'PENDING';
@@ -835,7 +835,7 @@ export default function RequesterDashboardPage() {
                     </div>
                     <div className="text-slate-600 font-medium flex items-center gap-1 text-[11px]">
                       <MapPin className="w-3 h-3 text-slate-400" />
-                      <span>{selectedRequest.location?.name || selectedRequest.donor?.location?.name || 'Tamil Nadu'}</span>
+                      <span>{selectedRequest.location?.name || selectedRequest.donor?.location?.name || 'Coimbatore'}</span>
                     </div>
                   </div>
 

@@ -10,9 +10,14 @@ import { PlatformNoticeModal } from '@/components/common/PlatformNoticeModal';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Blood Connect — Voluntary Blood Donor Discovery Network (Tamil Nadu)',
+  title: 'Blood Connect — Connecting Donors. Reaching Those in Need.',
   description:
-    'A community-driven blood donor discovery platform connecting voluntary donors with patients in urgent medical need across Tamil Nadu. Safe, fast, and privacy-first.',
+    'A community-driven blood donor discovery platform connecting voluntary donors with patients in urgent medical need across Coimbatore. Safe, fast, and privacy-first.',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({

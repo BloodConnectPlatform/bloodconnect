@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Droplet, PhoneCall, ShieldCheck, AlertCircle, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
+import { PhoneCall, ShieldCheck, AlertCircle, AlertTriangle } from 'lucide-react';
 import { openPlatformNotice } from '@/components/common/PlatformNoticeModal';
 
 export const Footer: React.FC = () => {
@@ -13,16 +14,27 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Col 1: Brand & Purpose */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-md shadow-red-500/20">
-                <Droplet className="w-5 h-5 fill-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white/10 p-1.5 flex items-center justify-center border border-white/15 shadow-md">
+                <Image
+                  src="/logo-icon.png"
+                  alt="Blood Connect Logo"
+                  width={34}
+                  height={34}
+                  className="object-contain"
+                />
               </div>
-              <span className="text-xl font-bold text-white tracking-tight">
-                Blood<span className="text-red-500">Connect</span>
-              </span>
+              <div>
+                <span className="text-xl font-black text-white tracking-tight flex items-center gap-1">
+                  Blood<span className="text-red-500">Connect</span>
+                </span>
+                <span className="block text-[10px] font-medium text-slate-400 -mt-0.5 tracking-wide">
+                  Connecting Donors. Reaching Those in Need.
+                </span>
+              </div>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              A community-driven, voluntary blood donor discovery platform connecting life-saving donors with people in urgent need across Tamil Nadu.
+              A community-driven, voluntary blood donor discovery platform connecting life-saving donors with people in urgent need across Coimbatore.
             </p>
             <div className="pt-2">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700 text-xs text-slate-300">
@@ -134,7 +146,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} Blood Connect. Built for life-saving community support in Tamil Nadu.</p>
+          <p>© {new Date().getFullYear()} Blood Connect — Connecting Donors. Reaching Those in Need.</p>
           <div className="flex items-center gap-4">
             <span>Voluntary & Free Platform</span>
             <span>•</span>
