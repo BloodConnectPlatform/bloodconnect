@@ -28,6 +28,8 @@ import {
   LogOut,
   ArrowRight,
   Shield,
+  Pencil,
+  UserCheck,
 } from 'lucide-react';
 import {
   AdminStats,
@@ -92,9 +94,13 @@ export default function AdminDashboardPage() {
   const [adminsList, setAdminsList] = useState<any[]>([]);
   const [isAdminsLoading, setIsAdminsLoading] = useState(false);
   const [promoteMobile, setPromoteMobile] = useState('');
+  const [promoteName, setPromoteName] = useState('');
   const [isPromoting, setIsPromoting] = useState(false);
   const [demoteTargetAdmin, setDemoteTargetAdmin] = useState<any | null>(null);
   const [isDemoting, setIsDemoting] = useState(false);
+  const [editTargetAdmin, setEditTargetAdmin] = useState<any | null>(null);
+  const [editAdminName, setEditAdminName] = useState('');
+  const [isUpdatingAdminName, setIsUpdatingAdminName] = useState(false);
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -178,14 +184,41 @@ export default function AdminDashboardPage() {
     if (!promoteMobile.trim()) return;
     setIsPromoting(true);
     try {
-      const res = await api.manageAdmins({ action: 'PROMOTE', mobile: promoteMobile.trim() });
-      setNotification({ type: 'success', text: res.message || 'User promoted successfully.' });
+      const res = await api.manageAdmins({
+        action: 'PROMOTE',
+        mobile: promoteMobile.trim(),
+        name: promoteName.trim() || undefined,
+      });
+      setNotification({ type: 'success', text: res.message || 'Administrator added/updated successfully.' });
       setPromoteMobile('');
+      setPromoteName('');
       loadAdmins();
     } catch (err: any) {
-      setNotification({ type: 'error', text: err.message || 'Failed to promote user.' });
+      setNotification({ type: 'error', text: err.message || 'Failed to add administrator.' });
     } finally {
       setIsPromoting(false);
+    }
+  };
+
+  const handleUpdateAdminName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTargetAdmin || !editAdminName.trim()) return;
+    setIsUpdatingAdminName(true);
+    try {
+      const res = await api.manageAdmins({
+        action: 'UPDATE_NAME',
+        mobile: editTargetAdmin.mobile,
+        user_id: editTargetAdmin.id,
+        name: editAdminName.trim(),
+      });
+      setNotification({ type: 'success', text: res.message || 'Administrator name updated successfully.' });
+      setEditTargetAdmin(null);
+      setEditAdminName('');
+      loadAdmins();
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err.message || 'Failed to update administrator name.' });
+    } finally {
+      setIsUpdatingAdminName(false);
     }
   };
 
@@ -1111,47 +1144,67 @@ export default function AdminDashboardPage() {
         {/* ================= TAB 5: ADMINISTRATORS MANAGEMENT ================= */}
         {activeTab === 'ADMINS' && (
           <div className="space-y-6">
-            {/* Quick Promote Form */}
+            {/* Quick Add / Direct Provision Admin Form */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
                 <UserPlus className="w-4 h-4 text-purple-700" />
-                Promote User to Administrator
+                Add Platform Administrator
               </h3>
               <p className="text-xs text-slate-500 mb-4">
-                Enter the registered 10-digit mobile number of an existing user to grant them administrative privileges.
+                Grant administrative privileges to an existing user or directly provision a new administrator account.
               </p>
-              <form onSubmit={handlePromoteAdmin} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div className="relative w-full sm:w-80">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                    +91
-                  </span>
+              <form onSubmit={handlePromoteAdmin} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div className="sm:col-span-4 space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    Full Name
+                  </label>
                   <input
-                    type="tel"
-                    maxLength={10}
-                    placeholder="Enter 10-digit mobile"
-                    value={promoteMobile}
-                    onChange={(e) => setPromoteMobile(e.target.value.replace(/\D/g, ''))}
-                    required
-                    className="w-full pl-14 pr-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
+                    type="text"
+                    maxLength={100}
+                    placeholder="e.g. Adhithya R"
+                    value={promoteName}
+                    onChange={(e) => setPromoteName(e.target.value)}
+                    className="w-full px-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={isPromoting || promoteMobile.length < 10}
-                  className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {isPromoting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Promoting...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3.5 h-3.5" />
-                      Promote to Admin
-                    </>
-                  )}
-                </button>
+                <div className="sm:col-span-5 space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    Mobile Number *
+                  </label>
+                  <div className="relative w-full">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="10-digit mobile"
+                      value={promoteMobile}
+                      onChange={(e) => setPromoteMobile(e.target.value.replace(/\D/g, ''))}
+                      required
+                      className="w-full pl-14 pr-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-3">
+                  <button
+                    type="submit"
+                    disabled={isPromoting || promoteMobile.length < 10}
+                    className="w-full px-5 py-2.5 min-h-[44px] bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isPromoting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Add Admin
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -1202,12 +1255,14 @@ export default function AdminDashboardPage() {
                         return (
                           <tr key={adm.id} className="hover:bg-slate-50/80">
                             <td className="p-3 font-bold text-slate-900">
-                              {adm.name}
-                              {isSelf && (
-                                <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">
-                                  You
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <span>{adm.name}</span>
+                                {isSelf && (
+                                  <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">
+                                    You
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="p-3 font-mono text-slate-800 font-bold">
                               +91 {adm.mobile}
@@ -1229,15 +1284,28 @@ export default function AdminDashboardPage() {
                               )}
                             </td>
                             <td className="p-3 text-right">
-                              <button
-                                onClick={() => setDemoteTargetAdmin(adm)}
-                                disabled={adminsList.length <= 1}
-                                title={adminsList.length <= 1 ? "Cannot demote the last remaining administrator" : "Demote to standard role"}
-                                className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
-                              >
-                                <UserMinus className="w-3.5 h-3.5" />
-                                Demote
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditTargetAdmin(adm);
+                                    setEditAdminName(adm.name);
+                                  }}
+                                  title="Edit Administrator Name"
+                                  className="px-2.5 py-1 bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-purple-700 text-xs font-bold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  Edit Name
+                                </button>
+                                <button
+                                  onClick={() => setDemoteTargetAdmin(adm)}
+                                  disabled={adminsList.length <= 1}
+                                  title={adminsList.length <= 1 ? "Cannot demote the last remaining administrator" : "Demote to standard role"}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                  Demote
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1391,6 +1459,69 @@ export default function AdminDashboardPage() {
                   className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {isDemoting ? 'Demoting...' : 'Confirm Demote'}
+                </button>
+              </div>
+            </form>
+      {/* ================= MODAL: EDIT ADMIN NAME ================= */}
+      {editTargetAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="bg-purple-900 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-purple-300" />
+                <h3 className="text-sm font-bold">Edit Administrator Name</h3>
+              </div>
+              <button onClick={() => setEditTargetAdmin(null)} className="text-white/80 hover:text-white cursor-pointer">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateAdminName} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Mobile Number</label>
+                <div className="px-3 py-2 bg-slate-100 rounded-xl text-xs font-mono font-bold text-slate-700">
+                  +91 {editTargetAdmin.mobile}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Administrator Name *</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={100}
+                  placeholder="Enter full name"
+                  value={editAdminName}
+                  onChange={(e) => setEditAdminName(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-hidden font-bold placeholder:text-slate-400"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditTargetAdmin(null)}
+                  className="px-3 py-1.5 text-xs text-slate-600 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingAdminName || !editAdminName.trim()}
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
+                >
+                  {isUpdatingAdminName ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Save Changes
+                    </>
+                  )}
                 </button>
               </div>
             </form>

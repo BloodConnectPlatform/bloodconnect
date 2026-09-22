@@ -629,7 +629,8 @@ class AdminService:
         auth_context: AdminAuthContext,
         recipient_mobile: str,
         template_name: str = "hello_world",
-        language_code: str = "en_US"
+        language_code: str = "en_US",
+        components: Optional[List[Dict[str, Any]]] = None
     ) -> AdminWhatsAppTestResponse:
         """Send a diagnostic test template message via WhatsApp Meta Cloud API without exposing credentials."""
         from app.core.config import settings
@@ -640,6 +641,63 @@ class AdminService:
 
         is_token_set = bool(settings.META_WA_ACCESS_TOKEN and settings.META_WA_ACCESS_TOKEN.strip())
         is_phone_set = bool(settings.META_WA_PHONE_NUMBER_ID and settings.META_WA_PHONE_NUMBER_ID.strip())
+
+        # Auto-populate components for known BloodConnect templates if not explicitly passed
+        if components is None:
+            if template_name in [settings.WHATSAPP_TEMPLATE_BLOOD_REQUEST, "bloodconnect_blood_request"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "O+"},
+                            {"type": "text", "text": "Coimbatore"},
+                            {"type": "text", "text": "KG Hospital"},
+                            {"type": "text", "text": "Emergency Patient"}
+                        ]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "quick_reply",
+                        "index": "0",
+                        "parameters": [{"type": "payload", "payload": f"ACCEPT:test-{uuid.uuid4().hex[:8]}"}]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "quick_reply",
+                        "index": "1",
+                        "parameters": [{"type": "payload", "payload": f"REJECT:test-{uuid.uuid4().hex[:8]}"}]
+                    }
+                ]
+            elif template_name in [settings.WHATSAPP_TEMPLATE_AUTH_OTP, "bloodconnect_auth_otp"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "123456"}
+                        ]
+                    }
+                ]
+            elif template_name in [settings.WHATSAPP_TEMPLATE_REQUEST_ACCEPTED, "bloodconnect_request_accepted"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "Arun Kumar"},
+                            {"type": "text", "text": "O+"},
+                            {"type": "text", "text": "+91 9876543201"}
+                        ]
+                    }
+                ]
+            elif template_name in [settings.WHATSAPP_TEMPLATE_REQUEST_REJECTED, "bloodconnect_request_rejected"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "Rahul Sharma"},
+                            {"type": "text", "text": "A+"}
+                        ]
+                    }
+                ]
 
         # In test mode or when NOTIFICATION_PROVIDER is explicitly 'mock', use get_whatsapp_provider()
         if settings.is_testing or settings.NOTIFICATION_PROVIDER == "mock":
@@ -652,8 +710,18 @@ class AdminService:
         result = await provider.send_template(
             to_mobile=recipient_mobile,
             template_name=template_name,
-            language_code=language_code
+            language_code=language_code,
+            components=components
         )
+        if not result.success and components and len(components) > 1 and result.error_message and ("components" in result.error_message.lower() or "button" in result.error_message.lower()):
+            retry_res = await provider.send_template(
+                to_mobile=recipient_mobile,
+                template_name=template_name,
+                language_code=language_code,
+                components=[components[0]]
+            )
+            if retry_res.success:
+                result = retry_res
 
         # Audit log the diagnostic test attempt
         now = datetime.now(timezone.utc)
