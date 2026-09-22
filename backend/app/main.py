@@ -81,7 +81,12 @@ app.add_api_route(
 )
 
 # Top-level legal route aliases
-from app.api.v1.legal import get_privacy_policy, get_terms_of_service
+from app.api.v1.legal import (
+    get_privacy_policy,
+    get_terms_of_service,
+    get_data_deletion_instructions,
+    meta_data_deletion_callback,
+)
 app.add_api_route(
     "/privacy-policy",
     get_privacy_policy,
@@ -110,6 +115,28 @@ app.add_api_route(
     tags=["Legal & Compliance"],
     include_in_schema=False
 )
+app.add_api_route(
+    "/data-deletion",
+    get_data_deletion_instructions,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/data-deletion",
+    meta_data_deletion_callback,
+    methods=["POST"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+app.add_api_route(
+    "/user-data-deletion",
+    get_data_deletion_instructions,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+
 
 
 

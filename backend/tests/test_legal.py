@@ -57,3 +57,37 @@ async def test_terms_of_service_endpoint(client: AsyncClient):
     # Test HEAD method
     head_res = await client.head("/terms")
     assert head_res.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_data_deletion_endpoint(client: AsyncClient):
+    """Test GET /api/v1/data-deletion and top-level /data-deletion return valid instructions and POST callback works."""
+    # Test api/v1 route
+    res = await client.get("/api/v1/data-deletion")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["title"] == "User Data Deletion Instructions"
+    assert data["platform_name"] == "BloodConnect"
+    assert "summary" in data
+    assert len(data["sections"]) > 0
+
+    # Test top-level route
+    top_res = await client.get("/data-deletion")
+    assert top_res.status_code == 200
+    assert top_res.json()["title"] == "User Data Deletion Instructions"
+
+    # Test HEAD method
+    head_res = await client.head("/data-deletion")
+    assert head_res.status_code == 200
+
+    # Test alias /user-data-deletion
+    alias_res = await client.get("/user-data-deletion")
+    assert alias_res.status_code == 200
+
+    # Test POST Meta callback
+    post_res = await client.post("/data-deletion")
+    assert post_res.status_code == 200
+    post_data = post_res.json()
+    assert "url" in post_data
+    assert "confirmation_code" in post_data
+

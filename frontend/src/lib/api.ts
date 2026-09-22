@@ -268,6 +268,10 @@ class ApiClient {
     return this.request<LegalDocument>('/terms');
   }
 
+  async getDataDeletionInstructions() {
+    return this.request<LegalDocument>('/data-deletion');
+  }
+
   // ===================== BLOOD REQUESTS =====================
   async createRequest(data: {
     donor_id: string | number;

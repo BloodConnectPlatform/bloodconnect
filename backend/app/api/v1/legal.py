@@ -185,6 +185,67 @@ TERMS_OF_SERVICE_DATA = LegalDocumentResponse(
     ]
 )
 
+DATA_DELETION_DATA = LegalDocumentResponse(
+    title="User Data Deletion Instructions",
+    last_updated="September 2026",
+    platform_name="BloodConnect",
+    summary=(
+        "BloodConnect values your privacy and personal data rights. Users may request complete deletion or deactivation of their donor profile, "
+        "account details, and personal information at any time. Follow the instructions below to submit a deletion request or manage your data."
+    ),
+    sections=[
+        LegalSection(
+            title="1. Scope & Rights to Data Deletion",
+            content=(
+                "In compliance with applicable privacy regulations and Meta Platform Policies, BloodConnect provides voluntary donors and requesters with the right to have their personal data completely erased from our active database. "
+                "You may request data deletion at any time without incurring any penalty or cost."
+            )
+        ),
+        LegalSection(
+            title="2. What Data Is Deleted Upon Request",
+            content=(
+                "When a data deletion request is processed, the following information is permanently removed or scrubbed:"
+            ),
+            points=[
+                "Donor Profile Information: Full name, 10-digit mobile number, blood group, date of birth, location, and contact consent records.",
+                "User Account & Credentials: User identifier, mobile number associations, active session tokens, and authentication records.",
+                "Notification Logs: Personal notification history and emergency request participant linkages.",
+                "Database Removal: The personal account record is permanently expunged from active operational databases."
+            ]
+        ),
+        LegalSection(
+            title="3. Step-by-Step Instructions to Request Deletion",
+            content=(
+                "Users can choose between temporary availability deactivation or permanent account erasure:"
+            ),
+            points=[
+                "Option A (Instant Availability Pause): If you wish to stop appearing in public donor searches and stop receiving emergency blood requests immediately, log in to BloodConnect, navigate to your Donor Dashboard (/donor/dashboard), and toggle your availability status to 'Unavailable'.",
+                "Option B (Permanent Account & Data Erasure): To permanently delete your entire profile and data, submit a data deletion request by emailing or contacting platform support with the subject 'Data Deletion Request' and providing your registered 10-digit mobile number.",
+                "Identity Verification: For security and to prevent fraudulent requests, a one-time verification code (OTP) will be sent to your registered phone number to confirm your identity before data deletion is executed.",
+                "Confirmation: Upon successful OTP confirmation, your personal data will be purged from the platform."
+            ]
+        ),
+        LegalSection(
+            title="4. Processing Timeline",
+            content=(
+                "Data deletion requests are reviewed and fulfilled within 48 to 72 hours following phone verification. Once executed, deletion is permanent and cannot be undone."
+            )
+        ),
+        LegalSection(
+            title="5. Third-Party Messaging & Meta WhatsApp Data",
+            content=(
+                "BloodConnect does not retain copies of your messages on external advertising platforms. Once your account is deleted from BloodConnect, our servers will never trigger any future WhatsApp or SMS messages to your phone number. Any chat history remaining inside your personal WhatsApp app is stored locally on your device and can be cleared using your WhatsApp device settings."
+            )
+        ),
+        LegalSection(
+            title="6. Support & Inquiries",
+            content=(
+                "For assistance with data deletion, contact platform support through the official BloodConnect portal."
+            )
+        )
+    ]
+)
+
 
 @router.api_route("/privacy-policy", methods=["GET", "HEAD"], response_model=LegalDocumentResponse, summary="Platform Privacy Policy")
 @router.api_route("/privarcy-policy", methods=["GET", "HEAD"], response_model=LegalDocumentResponse, include_in_schema=False)
@@ -198,3 +259,22 @@ async def get_privacy_policy():
 async def get_terms_of_service():
     """Retrieve the official terms of service for BloodConnect."""
     return TERMS_OF_SERVICE_DATA
+
+
+@router.api_route("/data-deletion", methods=["GET", "HEAD"], response_model=LegalDocumentResponse, summary="User Data Deletion Instructions")
+@router.api_route("/user-data-deletion", methods=["GET", "HEAD"], response_model=LegalDocumentResponse, include_in_schema=False)
+async def get_data_deletion_instructions():
+    """Retrieve user data deletion instructions for BloodConnect."""
+    return DATA_DELETION_DATA
+
+
+@router.post("/data-deletion", summary="Meta Data Deletion Callback", include_in_schema=False)
+async def meta_data_deletion_callback():
+    """Meta Data Deletion Callback endpoint returning confirmation code and status URL."""
+    import uuid
+    confirmation_code = str(uuid.uuid4())
+    return {
+        "url": "/data-deletion",
+        "confirmation_code": confirmation_code
+    }
+

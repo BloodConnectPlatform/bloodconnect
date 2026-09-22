@@ -117,6 +117,11 @@ export const Footer: React.FC = () => {
                   Terms of Service
                 </Link>
               </li>
+              <li>
+                <Link href="/data-deletion" className="hover:text-red-400 transition-colors">
+                  Data Deletion
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -164,6 +169,10 @@ export const Footer: React.FC = () => {
             <span>•</span>
             <Link href="/terms" className="hover:text-slate-300 transition-colors">
               Terms of Service
+            </Link>
+            <span>•</span>
+            <Link href="/data-deletion" className="hover:text-slate-300 transition-colors">
+              Data Deletion
             </Link>
             <span>•</span>
             <span>Emergency Use Only</span>
