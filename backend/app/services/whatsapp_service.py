@@ -153,7 +153,18 @@ class MetaWhatsAppProvider(BaseWhatsAppProvider):
                 "components": components or []
             }
         }
-        return await self._post_payload(payload)
+        res = await self._post_payload(payload)
+        # Automatic language fallback if translation does not exist in requested language code
+        if not res.success and res.details and "error" in res.details:
+            err_code = res.details["error"].get("code")
+            if err_code == 132001:  # Template name does not exist in the translation
+                alt_lang = "en" if language_code in ("en_US", "en_GB") else "en_US"
+                logger.info(f"[MetaWhatsAppProvider] Retrying template '{template_name}' with alternative language code '{alt_lang}'")
+                payload["template"]["language"]["code"] = alt_lang
+                retry_res = await self._post_payload(payload)
+                if retry_res.success:
+                    return retry_res
+        return res
 
     async def send_interactive_buttons(
         self,
