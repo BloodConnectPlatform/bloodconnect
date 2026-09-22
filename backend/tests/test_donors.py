@@ -405,3 +405,25 @@ async def test_public_stats_endpoint(
     assert isinstance(data["available_donors"], int)
     assert data["available_donors"] <= data["total_donors"]
 
+    # Test root alias /donors/public-stats
+    res_root = await client.get("/donors/public-stats")
+    assert res_root.status_code == 200
+    assert res_root.json()["total_locations"] == expected_locations
+
+
+@pytest.mark.asyncio
+async def test_locations_endpoints_and_root_alias(client: AsyncClient):
+    """Test both /api/v1/locations and root /locations return valid active locations."""
+    res_v1 = await client.get("/api/v1/locations")
+    assert res_v1.status_code == 200
+    data_v1 = res_v1.json()
+    assert len(data_v1) >= 11
+    assert any(l["name"] == "Coimbatore" for l in data_v1)
+
+    res_root = await client.get("/locations")
+    assert res_root.status_code == 200
+    data_root = res_root.json()
+    assert len(data_root) >= 11
+    assert any(l["name"] == "Coimbatore" for l in data_root)
+
+

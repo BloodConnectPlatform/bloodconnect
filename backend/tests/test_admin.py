@@ -298,3 +298,17 @@ async def test_admin_test_whatsapp_non_admin_blocked(client: AsyncClient, setup_
     payload = {"recipient_mobile": "9876543220"}
     res = await client.post("/api/v1/admin/test-whatsapp", headers=req_headers, json=payload)
     assert res.status_code == 403
+
+
+
+@pytest.mark.asyncio
+async def test_admin_seed_locations(client: AsyncClient, setup_admin_and_data):
+    """Test admin endpoint to trigger location seeding/reactivation."""
+    data = setup_admin_and_data
+    admin_headers = {"Authorization": f"Bearer {data['admin_token']}"}
+    res = await client.post("/api/v1/admin/seed-locations", headers=admin_headers)
+    assert res.status_code == 200
+    res_data = res.json()
+    assert res_data["status"] == "success"
+    assert "locations_updated" in res_data
+

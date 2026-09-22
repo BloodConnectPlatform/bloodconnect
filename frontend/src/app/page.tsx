@@ -23,22 +23,9 @@ import { BloodGroup, LocationItem } from '@/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { openPlatformNotice } from '@/components/common/PlatformNoticeModal';
+import { DEFAULT_LOCATIONS } from '@/lib/constants';
 
 const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
-
-const DEFAULT_LOCATIONS: LocationItem[] = [
-  { id: 1, name: 'Coimbatore', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-  { id: 2, name: 'Sulur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-  { id: 3, name: 'Tiruppur', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
-  { id: 4, name: 'Pollachi', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-  { id: 5, name: 'Mettupalayam', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-  { id: 6, name: 'Avinashi', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
-  { id: 7, name: 'Palladam', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
-  { id: 8, name: 'Udumalpet', district: 'Tiruppur', state: 'Tamil Nadu', is_active: true },
-  { id: 9, name: 'Annur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-  { id: 10, name: 'Madukkarai', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-  { id: 11, name: 'Perur', district: 'Coimbatore', state: 'Tamil Nadu', is_active: true },
-];
 
 export default function HomePage() {
   const router = useRouter();
@@ -50,7 +37,7 @@ export default function HomePage() {
   const [stats, setStats] = useState({
     total_donors: 0,
     available_donors: 0,
-    total_locations: 0,
+    total_locations: DEFAULT_LOCATIONS.length,
   });
 
   useEffect(() => {
@@ -67,11 +54,14 @@ export default function HomePage() {
         setStats({
           total_donors: res.total_donors ?? 0,
           available_donors: res.available_donors ?? 0,
-          total_locations: res.total_locations ?? 0,
+          total_locations: res.total_locations > 0 ? res.total_locations : DEFAULT_LOCATIONS.length,
         });
       }
-    }).catch(() => {});
+    }).catch(() => {
+      setStats((prev) => ({ ...prev, total_locations: DEFAULT_LOCATIONS.length }));
+    });
   }, []);
+
 
   const handleSearchDonors = (e: React.FormEvent) => {
     e.preventDefault();
