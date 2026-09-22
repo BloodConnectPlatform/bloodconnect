@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from app.models.report import Report
     from app.models.notification import Notification
     from app.models.admin_action import AdminAction
+    from app.models.whatsapp_login_token import WhatsAppLoginToken
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -57,5 +58,11 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         "AdminAction",
         foreign_keys="[AdminAction.admin_id]",
         back_populates="admin",
+        lazy="selectin"
+    )
+    whatsapp_login_tokens: Mapped[List["WhatsAppLoginToken"]] = relationship(
+        "WhatsAppLoginToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
         lazy="selectin"
     )

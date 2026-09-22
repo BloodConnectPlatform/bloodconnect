@@ -171,3 +171,25 @@ export interface PaginatedResponse<T> {
   page_size: number;
   total_pages: number;
 }
+
+export interface PublicStats {
+  total_donors: number;
+  available_donors: number;
+  total_locations: number;
+}
+
+export interface LegalSection {
+  title: string;
+  content: string;
+  points?: string[];
+}
+
+export interface LegalDocument {
+  title: string;
+  last_updated: string;
+  platform_name: string;
+  summary: string;
+  sections: LegalSection[];
+}
+
+

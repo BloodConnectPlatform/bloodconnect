@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { X, Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, User as UserIcon } from 'lucide-react';
+import { X, Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, User as UserIcon, MessageCircle } from 'lucide-react';
+import { redirectToWhatsAppLogin } from '@/lib/whatsapp';
 
 interface AuthModalProps {
   onSuccess?: () => void;
@@ -195,7 +196,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           )}
 
           {step === 'PHONE' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+            <div className="space-y-4">
+              {/* Primary WhatsApp Fast Login Button */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-2.5">
+                <div className="flex items-center justify-center gap-2 text-emerald-800 font-bold text-sm">
+                  <MessageCircle className="w-4 h-4 text-emerald-600" />
+                  <span>Fast WhatsApp Authentication</span>
+                </div>
+                <p className="text-xs text-emerald-700 leading-relaxed">
+                  Sends <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">LOGIN</span> to our WhatsApp number to receive an instant single-use magic login link.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeLoginModal();
+                    redirectToWhatsAppLogin('LOGIN');
+                  }}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Open WhatsApp &amp; Send LOGIN</span>
+                </button>
+              </div>
+
+              <div className="relative flex items-center justify-center my-2">
+                <div className="border-t border-slate-200 w-full" />
+                <span className="bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  Or sign in with SMS OTP
+                </span>
+                <div className="border-t border-slate-200 w-full" />
+              </div>
+
+              <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Full Name (Required for new Requesters)
@@ -266,6 +298,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 </p>
               </div>
             </form>
+          </div>
           ) : (
             <form onSubmit={handleVerifyLogin} className="space-y-4">
               <div>

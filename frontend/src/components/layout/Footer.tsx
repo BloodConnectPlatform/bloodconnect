@@ -107,6 +107,21 @@ export const Footer: React.FC = () => {
                   <span>Platform Notice & Disclaimer</span>
                 </button>
               </li>
+              <li>
+                <Link href="/privacy-policy" className="hover:text-red-400 transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-red-400 transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/data-deletion" className="hover:text-red-400 transition-colors">
+                  Data Deletion
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -148,7 +163,17 @@ export const Footer: React.FC = () => {
         <div className="pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <p>© {new Date().getFullYear()} Blood Connect — Connecting Donors. Reaching Those in Need.</p>
           <div className="flex items-center gap-4">
-            <span>Voluntary & Free Platform</span>
+            <Link href="/privacy-policy" className="hover:text-slate-300 transition-colors">
+              Privacy Policy
+            </Link>
+            <span>•</span>
+            <Link href="/terms" className="hover:text-slate-300 transition-colors">
+              Terms of Service
+            </Link>
+            <span>•</span>
+            <Link href="/data-deletion" className="hover:text-slate-300 transition-colors">
+              Data Deletion
+            </Link>
             <span>•</span>
             <span>Emergency Use Only</span>
           </div>

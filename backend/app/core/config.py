@@ -1,4 +1,4 @@
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union
 from pydantic import AnyHttpUrl, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import os
@@ -33,6 +33,20 @@ class Settings(BaseSettings):
             self.DEBUG = False
         return self
 
+    @model_validator(mode="after")
+    def sync_whatsapp_numbers(self) -> "Settings":
+        """Ensure WHATSAPP_NUMBER and WHATSAPP_BUSINESS_PHONE_NUMBER are synchronized."""
+        if hasattr(self, "WHATSAPP_NUMBER") and self.WHATSAPP_NUMBER:
+            clean = str(self.WHATSAPP_NUMBER).strip().replace(" ", "").replace("-", "").replace("+", "")
+            self.WHATSAPP_NUMBER = clean
+            if not self.WHATSAPP_BUSINESS_PHONE_NUMBER or self.WHATSAPP_BUSINESS_PHONE_NUMBER == "919843883304":
+                self.WHATSAPP_BUSINESS_PHONE_NUMBER = clean
+        elif hasattr(self, "WHATSAPP_BUSINESS_PHONE_NUMBER") and self.WHATSAPP_BUSINESS_PHONE_NUMBER:
+            clean = str(self.WHATSAPP_BUSINESS_PHONE_NUMBER).strip().replace(" ", "").replace("-", "").replace("+", "")
+            self.WHATSAPP_NUMBER = clean
+            self.WHATSAPP_BUSINESS_PHONE_NUMBER = clean
+        return self
+
     # Security & Authentication
     SECRET_KEY: str = "dev_blood_connect_super_secret_jwt_key_change_in_production_32bytes!"
     ALGORITHM: str = "HS256"
@@ -56,6 +70,13 @@ class Settings(BaseSettings):
 
     # Communication & Public URLs
     PUBLIC_API_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "http://localhost:3000"
+    WHATSAPP_MAGIC_LINK_BASE_URL: Optional[str] = None  # Falls back to PUBLIC_API_URL if not specified
+    WHATSAPP_NUMBER: str = "919843883304"
+    WHATSAPP_BUSINESS_PHONE_NUMBER: str = "919843883304"
+    WHATSAPP_LOGIN_TOKEN_EXPIRE_MINUTES: int = 5
+    WHATSAPP_LOGIN_COOLDOWN_SECONDS: int = 60
+    WHATSAPP_LOGIN_MAX_REQUESTS_WINDOW: int = 5
     NOTIFICATION_PROVIDER: str = "mock"  # "mock", "meta", "msg91", "live"
     NOTIFICATION_PRIMARY_CHANNEL: str = "whatsapp"  # "whatsapp", "sms"
     NOTIFICATION_SMS_FALLBACK: bool = True

@@ -21,6 +21,7 @@ from app.models.admin_action import AdminAction
 from app.models.notification import Notification
 from app.models.notification_log import NotificationLog
 from app.models.webhook_event import WebhookEvent
+from app.models.whatsapp_login_token import WhatsAppLoginToken
 
 __all__ = [
     "Base",
@@ -46,4 +47,5 @@ __all__ = [
     "Notification",
     "NotificationLog",
     "WebhookEvent",
+    "WhatsAppLoginToken",
 ]

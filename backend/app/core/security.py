@@ -26,6 +26,24 @@ def verify_otp_hash(mobile: str, otp: str, expected_hash: str) -> bool:
     return hmac.compare_digest(computed_hash, expected_hash)
 
 
+def generate_whatsapp_login_token() -> str:
+    """Generate a cryptographically secure random token with at least 256 bits of entropy."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_whatsapp_token(token: str) -> str:
+    """Hash WhatsApp login token with server secret key using HMAC-SHA256."""
+    key = settings.SECRET_KEY.encode("utf-8")
+    message = token.strip().encode("utf-8")
+    return hmac.new(key, message, hashlib.sha256).hexdigest()
+
+
+def verify_whatsapp_token_hash(token: str, expected_hash: str) -> bool:
+    """Securely compare WhatsApp login token hash in constant time."""
+    computed_hash = hash_whatsapp_token(token)
+    return hmac.compare_digest(computed_hash, expected_hash)
+
+
 def create_access_token(
     data: Dict[str, Any],
     expires_delta: Optional[timedelta] = None

@@ -61,6 +61,83 @@ app.add_middleware(
 # Include API v1 Router & Webhooks Router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 app.include_router(webhooks_router)
+app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX)
+
+# Top-level magic link alias: GET /auth/whatsapp
+from app.api.v1.auth import redeem_whatsapp_token_get, get_whatsapp_config
+app.add_api_route(
+    "/auth/whatsapp",
+    redeem_whatsapp_token_get,
+    methods=["GET"],
+    tags=["Authentication"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/auth/whatsapp/config",
+    get_whatsapp_config,
+    methods=["GET"],
+    tags=["Authentication"],
+    include_in_schema=True
+)
+
+# Top-level legal route aliases
+from app.api.v1.legal import (
+    get_privacy_policy,
+    get_terms_of_service,
+    get_data_deletion_instructions,
+    meta_data_deletion_callback,
+)
+app.add_api_route(
+    "/privacy-policy",
+    get_privacy_policy,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/privarcy-policy",
+    get_privacy_policy,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+app.add_api_route(
+    "/terms",
+    get_terms_of_service,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/terms-of-service",
+    get_terms_of_service,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+app.add_api_route(
+    "/data-deletion",
+    get_data_deletion_instructions,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/data-deletion",
+    meta_data_deletion_callback,
+    methods=["POST"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+app.add_api_route(
+    "/user-data-deletion",
+    get_data_deletion_instructions,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+
+
 
 
 @app.api_route("/", methods=["GET", "HEAD"], tags=["Root"])
