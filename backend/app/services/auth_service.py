@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -23,9 +24,44 @@ class AuthService:
         await otp_service.verify_otp(db, mobile, otp)
 
         # 2. Look up user by mobile
-        stmt = select(User).where(User.mobile == mobile)
+        std_mobile = mobile[-10:] if len(mobile) >= 10 else mobile
+        phone_variants = {
+            mobile,
+            mobile.replace("+", ""),
+            f"+91{std_mobile}",
+            f"91{std_mobile}",
+            std_mobile,
+        }
+        stmt = select(User).where(User.mobile.in_(phone_variants))
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
+
+        # Check if mobile is configured in INITIAL_ADMIN_PHONE_NUMBERS
+        initial_admins = settings.INITIAL_ADMIN_PHONE_NUMBERS or []
+        if isinstance(initial_admins, str):
+            initial_admins = [p.strip() for p in initial_admins.split(",") if p.strip()]
+
+        is_admin_configured = any(
+            admin_p in phone_variants or (len(str(admin_p).replace("+", "")) >= 10 and str(admin_p).replace("+", "")[-10:] == std_mobile)
+            for admin_p in initial_admins
+        )
+
+        if is_admin_configured:
+            if not user:
+                user = User(
+                    name="System Administrator",
+                    mobile=std_mobile,
+                    role=UserRole.ADMIN,
+                    is_active=True,
+                )
+                db.add(user)
+                await db.commit()
+                await db.refresh(user)
+            elif user.role != UserRole.ADMIN:
+                user.role = UserRole.ADMIN
+                user.is_active = True
+                await db.commit()
+                await db.refresh(user)
 
         if not user:
             raise HTTPException(

@@ -33,13 +33,15 @@ async def lifespan(app: FastAPI):
             await seed_users(session)
         logger.info("Initialized local SQLite database and verified locations & sample users/admin.")
     else:
-        # In PostgreSQL / production mode, ensure predefined locations are seeded and active
+        # In PostgreSQL / production mode, ensure predefined locations and initial admins are seeded and active
         try:
             async with AsyncSessionLocal() as session:
                 seeded_count = await seed_locations(session)
-            logger.info(f"Verified predefined locations in PostgreSQL (updated/seeded: {seeded_count}).")
+                from app.seeds.users import ensure_initial_admins
+                admin_count = await ensure_initial_admins(session)
+            logger.info(f"Verified predefined locations ({seeded_count}) and initial admin accounts ({admin_count}) in PostgreSQL.")
         except Exception as e:
-            logger.error(f"Error during location seeding on PostgreSQL: {e}")
+            logger.error(f"Error during startup seeding on PostgreSQL: {e}")
     yield
     logger.info("Shutting down Blood Connect API...")
     await engine.dispose()

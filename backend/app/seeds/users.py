@@ -638,3 +638,49 @@ async def seed_users(session: AsyncSession) -> Dict[str, int]:
 
     await session.commit()
     return stats
+
+
+async def ensure_initial_admins(session: AsyncSession) -> int:
+    """Ensure all phone numbers in INITIAL_ADMIN_PHONE_NUMBERS exist as active ADMIN users."""
+    initial_admins = settings.INITIAL_ADMIN_PHONE_NUMBERS or []
+    if isinstance(initial_admins, str):
+        initial_admins = [p.strip() for p in initial_admins.split(",") if p.strip()]
+
+    count = 0
+    for raw_phone in initial_admins:
+        phone = str(raw_phone).strip().replace(" ", "").replace("-", "")
+        if not phone:
+            continue
+        std_phone = phone[-10:] if len(phone) >= 10 else phone
+        phone_variants = {
+            phone,
+            phone.replace("+", ""),
+            f"+91{std_phone}",
+            f"91{std_phone}",
+            std_phone,
+        }
+        stmt = select(User).where(User.mobile.in_(phone_variants))
+        res = await session.execute(stmt)
+        user = res.scalars().first()
+
+        if not user:
+            user = User(
+                name="System Administrator",
+                mobile=std_phone,
+                role=UserRole.ADMIN,
+                is_active=True,
+            )
+            session.add(user)
+            await session.flush()
+            count += 1
+            logger.info(f"Provisioned initial admin user for mobile: {std_phone}")
+        else:
+            if user.role != UserRole.ADMIN or not user.is_active:
+                user.role = UserRole.ADMIN
+                user.is_active = True
+                await session.flush()
+                count += 1
+                logger.info(f"Promoted existing user to ADMIN for mobile: {user.mobile}")
+    await session.commit()
+    return count
+
