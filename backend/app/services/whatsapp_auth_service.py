@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import logging
 from typing import Any, Dict, Optional, Tuple
 import uuid
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    create_verification_token,
     generate_whatsapp_login_token,
     hash_whatsapp_token,
 )
@@ -62,19 +63,40 @@ class WhatsAppAuthService:
         """Clear recorded IP rate limit timestamps (useful for tests)."""
         self._ip_redemption_attempts.clear()
 
+    def _resolve_public_base_url(self, request: Optional[Request] = None) -> str:
+        """
+        Determine the public base URL for links sent in WhatsApp.
+        Prioritizes explicit config, then incoming tunnel/proxy headers, then FRONTEND_URL.
+        """
+        if settings.WHATSAPP_MAGIC_LINK_BASE_URL and settings.WHATSAPP_MAGIC_LINK_BASE_URL.strip():
+            return settings.WHATSAPP_MAGIC_LINK_BASE_URL.strip().rstrip("/")
+        if settings.FRONTEND_URL and "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL:
+            return settings.FRONTEND_URL.strip().rstrip("/")
+        if request:
+            forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+            forwarded_proto = request.headers.get("x-forwarded-proto") or "https"
+            if forwarded_host and "localhost" not in forwarded_host and "127.0.0.1" not in forwarded_host:
+                host_val = forwarded_host.split(",")[0].strip()
+                if host_val.startswith("api."):
+                    host_val = "www." + host_val[4:]
+                return f"{forwarded_proto}://{host_val}".rstrip("/")
+        return (settings.FRONTEND_URL or settings.PUBLIC_API_URL or "http://localhost:3000").rstrip("/")
+
     async def handle_login_request(
         self,
         db: AsyncSession,
         sender_mobile: str,
-        raw_message: Optional[dict] = None
+        raw_message: Optional[dict] = None,
+        command: str = "LOGIN",
+        request: Optional[Request] = None
     ) -> Dict[str, Any]:
         """
-        Handle incoming 'LOGIN' command from WhatsApp webhook.
-        Validates sender, checks rate limits, creates token, and dispatches magic link.
+        Handle incoming 'LOGIN' or 'REGISTER' command from WhatsApp webhook.
+        Validates sender, checks rate limits, creates token, and dispatches magic or registration link.
         """
         norm_mobile = normalize_mobile(sender_mobile)
         masked = mask_phone_number(norm_mobile)
-        logger.info(f"[WhatsAppAuthService] Processing WhatsApp LOGIN request for {masked}")
+        logger.info(f"[WhatsAppAuthService] Processing WhatsApp {command} request for {masked}")
 
         # 1. Lookup User by phone variants
         phone_variants = {
@@ -93,16 +115,21 @@ class WhatsAppAuthService:
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
-        # 2. Case: Unregistered User
+        # 2. Case: Unregistered User -> Provide 1-Click Pre-verified Registration Link
         if not user:
-            logger.info(f"[WhatsAppAuthService] No account found for mobile {masked}. Sending registration reply.")
-            reply_res = await self.send_unregistered_reply(to_mobile=sender_mobile)
+            logger.info(f"[WhatsAppAuthService] No account found for mobile {masked}. Generating pre-verified registration link.")
+            verification_token = create_verification_token(norm_mobile, expires_delta=timedelta(hours=1))
+            base_url = self._resolve_public_base_url(request)
+            reg_url = f"{base_url}/register?mobile={norm_mobile}&token={verification_token}"
+
+            reply_res = await self.send_unregistered_reply(to_mobile=sender_mobile, reg_url=reg_url)
             if not reply_res.success:
                 logger.error(f"[WhatsAppAuthService] Failed to send unregistered reply to {masked}: {reply_res.error_message}")
             return {
                 "status": "unregistered",
-                "message": "User not registered, sent registration prompt.",
-                "provider_result": reply_res.success
+                "message": "User not registered, sent registration link with pre-verified token.",
+                "provider_result": reply_res.success,
+                "registration_url": reg_url
             }
 
         # 3. Case: Deactivated User
@@ -182,14 +209,20 @@ class WhatsAppAuthService:
         )
 
         # 6. Construct HTTPS Magic Link URL
-        base_url = settings.WHATSAPP_MAGIC_LINK_BASE_URL or settings.PUBLIC_API_URL
+        base_url = self._resolve_public_base_url(request)
         magic_url = f"{base_url.rstrip('/')}/auth/whatsapp?token={raw_token}"
 
-        # 7. Dispatch magic link message via WhatsApp
-        send_result = await self.send_whatsapp_login_link(
-            to_mobile=sender_mobile,
-            magic_url=magic_url
-        )
+        # 7. Dispatch message via WhatsApp
+        if command == "REGISTER":
+            send_result = await self.send_already_registered_reply(
+                to_mobile=sender_mobile,
+                magic_url=magic_url
+            )
+        else:
+            send_result = await self.send_whatsapp_login_link(
+                to_mobile=sender_mobile,
+                magic_url=magic_url
+            )
 
         if not send_result.success:
             logger.error(
@@ -257,12 +290,41 @@ class WhatsAppAuthService:
         )
         return await provider.send_text(to_mobile=to_mobile, text=message)
 
-    async def send_unregistered_reply(self, to_mobile: str) -> ProviderSendResult:
-        """Reply to unregistered WhatsApp phone number."""
+    async def send_unregistered_reply(
+        self,
+        to_mobile: str,
+        reg_url: Optional[str] = None
+    ) -> ProviderSendResult:
+        """Reply to unregistered WhatsApp phone number, providing 1-click registration link."""
+        provider = get_whatsapp_provider()
+        if reg_url:
+            message = (
+                "Blood Connect Registration\n\n"
+                "We couldn't find a Blood Connect account linked to this WhatsApp number. Please register first.\n\n"
+                "Your WhatsApp number is already verified! Tap the link below to complete your registration in 30 seconds:\n"
+                f"{reg_url}\n\n"
+                "This registration link is valid for 1 hour."
+            )
+        else:
+            message = (
+                "Blood Connect\n\n"
+                "We couldn't find a Blood Connect account linked to this WhatsApp number. Please register first."
+            )
+        return await provider.send_text(to_mobile=to_mobile, text=message)
+
+    async def send_already_registered_reply(
+        self,
+        to_mobile: str,
+        magic_url: str
+    ) -> ProviderSendResult:
+        """Reply to registered user who sent REGISTER, providing instant login link."""
         provider = get_whatsapp_provider()
         message = (
             "Blood Connect\n\n"
-            "We couldn't find a Blood Connect account linked to this WhatsApp number. Please register first."
+            "You already have an active Blood Connect account linked to this WhatsApp number!\n\n"
+            "Click below to securely sign in to your dashboard:\n"
+            f"{magic_url}\n\n"
+            "This link expires in 5 minutes."
         )
         return await provider.send_text(to_mobile=to_mobile, text=message)
 

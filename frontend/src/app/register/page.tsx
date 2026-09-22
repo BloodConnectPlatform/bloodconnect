@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
   Heart,
@@ -27,8 +27,9 @@ import { redirectToWhatsAppLogin } from '@/lib/whatsapp';
 
 const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-export default function DonorRegistrationPage() {
+function DonorRegistrationContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { refreshUser } = useAuth();
 
   // Wizard Steps: 1: Phone, 2: OTP, 3: Profile Form, 4: Success
@@ -38,6 +39,20 @@ export default function DonorRegistrationPage() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [verificationToken, setVerificationToken] = useState('');
+  const [isPreverified, setIsPreverified] = useState(false);
+
+  useEffect(() => {
+    const mobileParam = searchParams.get('mobile');
+    const tokenParam = searchParams.get('token');
+    if (mobileParam) {
+      setMobileNumber(mobileParam);
+    }
+    if (tokenParam) {
+      setVerificationToken(tokenParam);
+      setIsPreverified(true);
+      setStep(3);
+    }
+  }, [searchParams]);
 
   const [fullName, setFullName] = useState('');
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('A+');
@@ -407,6 +422,20 @@ export default function DonorRegistrationPage() {
             {/* STEP 3: DONOR PROFILE DETAILS */}
             {step === 3 && (
               <form onSubmit={handleCompleteProfile} className="space-y-6">
+                {isPreverified && (
+                  <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-emerald-900">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="text-xs">
+                      <div className="font-bold text-emerald-950 text-sm">
+                        WhatsApp Number Verified ({mobileNumber})
+                      </div>
+                      <p className="text-emerald-700 mt-0.5">
+                        Your phone number was verified via WhatsApp. Complete your profile below to start saving lives!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Full Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -583,5 +612,19 @@ export default function DonorRegistrationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DonorRegistrationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 flex items-center justify-center p-12">
+          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+        </div>
+      }
+    >
+      <DonorRegistrationContent />
+    </Suspense>
   );
 }

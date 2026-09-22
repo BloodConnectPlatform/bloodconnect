@@ -47,7 +47,10 @@ class DonorService:
         if data.verification_token:
             try:
                 payload = decode_token(data.verification_token)
-                if payload.get("sub") != data.mobile or payload.get("purpose") != "otp_verified":
+                sub_mobile = str(payload.get("sub", ""))
+                sub_clean = sub_mobile[-10:] if len(sub_mobile) >= 10 else sub_mobile
+                data_clean = str(data.mobile)[-10:] if len(str(data.mobile)) >= 10 else str(data.mobile)
+                if sub_clean != data_clean or payload.get("purpose") != "otp_verified":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail="Invalid verification token for this mobile number."

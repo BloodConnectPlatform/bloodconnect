@@ -6,7 +6,7 @@ import secrets
 from typing import Any, Dict, List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -108,7 +108,8 @@ class WhatsAppWebhookService:
     async def process_event_payload(
         self,
         db: AsyncSession,
-        payload: Dict[str, Any]
+        payload: Dict[str, Any],
+        request: Optional[Request] = None
     ) -> Dict[str, Any]:
         """Process incoming Meta WhatsApp webhook payload with idempotency."""
         entries = payload.get("entry", [])
@@ -150,20 +151,23 @@ class WhatsAppWebhookService:
                             processed_actions.append({"msg_id": msg_id, "action": "duplicate_skipped"})
                             continue
 
-                    # Check for LOGIN command
+                    # Check for LOGIN / REGISTER commands
                     msg_type = message.get("type")
                     if msg_type == "text":
                         raw_body = (message.get("text", {}).get("body") or "").strip()
                         cleaned_body = raw_body.strip(".! \r\n\t").upper()
-                        if cleaned_body == "LOGIN":
-                            logger.info(f"[WebhookService] Received LOGIN text command from sender: {sender_mobile}")
+                        if cleaned_body in ("LOGIN", "REGISTER", "REG", "SIGNUP", "JOIN"):
+                            cmd = "REGISTER" if cleaned_body in ("REGISTER", "REG", "SIGNUP", "JOIN") else "LOGIN"
+                            logger.info(f"[WebhookService] Received {cmd} text command from sender: {sender_mobile}")
                             login_result = await self.handle_login_request(
                                 db=db,
                                 sender_mobile=sender_mobile,
-                                raw_message=message
+                                raw_message=message,
+                                command=cmd,
+                                request=request
                             )
-                            logger.info(f"[WebhookService] LOGIN handling result for {sender_mobile}: {login_result}")
-                            processed_actions.append({"msg_id": msg_id, "action": "whatsapp_login", "result": login_result})
+                            logger.info(f"[WebhookService] {cmd} handling result for {sender_mobile}: {login_result}")
+                            processed_actions.append({"msg_id": msg_id, "action": f"whatsapp_{cmd.lower()}", "result": login_result})
                             continue
 
                     # Extract interactive response / payload
@@ -357,13 +361,17 @@ class WhatsAppWebhookService:
         self,
         db: AsyncSession,
         sender_mobile: str,
-        raw_message: Optional[dict] = None
+        raw_message: Optional[dict] = None,
+        command: str = "LOGIN",
+        request: Optional[Request] = None
     ) -> Dict[str, Any]:
-        """Handle incoming LOGIN message request."""
+        """Handle incoming LOGIN or REGISTER message request."""
         return await whatsapp_auth_service.handle_login_request(
             db=db,
             sender_mobile=sender_mobile,
-            raw_message=raw_message
+            raw_message=raw_message,
+            command=command,
+            request=request
         )
 
     async def create_whatsapp_login_token(
