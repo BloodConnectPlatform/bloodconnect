@@ -1,4 +1,4 @@
-const DEFAULT_WHATSAPP_NUMBER = '918807864003';
+const DEFAULT_WHATSAPP_NUMBER = '';
 
 let cachedWhatsAppNumber: string | null = null;
 

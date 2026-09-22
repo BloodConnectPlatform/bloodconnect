@@ -373,7 +373,7 @@ async def redeem_whatsapp_token_post(
     description="Returns the configured WhatsApp Business phone number and wa.me redirect URL."
 )
 async def get_whatsapp_config():
-    phone = (settings.WHATSAPP_NUMBER or settings.WHATSAPP_BUSINESS_PHONE_NUMBER or "919843883304").strip().replace(" ", "").replace("-", "").replace("+", "")
+    phone = (settings.WHATSAPP_NUMBER or settings.WHATSAPP_BUSINESS_PHONE_NUMBER or "910000000000").strip().replace(" ", "").replace("-", "").replace("+", "")
     return {
         "whatsapp_phone_number": phone,
         "login_url": f"https://wa.me/{phone}?text=LOGIN"

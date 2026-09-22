@@ -6,8 +6,8 @@ const backendUrl = (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_
 
 const nextConfig: NextConfig = {
   env: {
-    WHATSAPP_NUMBER: process.env.WHATSAPP_NUMBER || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "919843883304",
-    NEXT_PUBLIC_WHATSAPP_NUMBER: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || process.env.WHATSAPP_NUMBER || "919843883304",
+    WHATSAPP_NUMBER: process.env.WHATSAPP_NUMBER || process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "",
+    NEXT_PUBLIC_WHATSAPP_NUMBER: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || process.env.WHATSAPP_NUMBER || "",
   },
   allowedDevOrigins: [
     "*.trycloudflare.com",
