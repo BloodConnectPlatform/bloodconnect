@@ -250,14 +250,22 @@ async def redeem_whatsapp_token_get(
         target_path = "/donor/dashboard"
 
     frontend_base = (settings.FRONTEND_URL or "http://localhost:3000").rstrip("/")
-    target_url = f"{frontend_base}{target_path}"
 
-    user_dict_json = json.dumps(token_response.user.model_dump(mode="json"))
-    access_token_json = json.dumps(token_response.access_token)
-    refresh_token_json = json.dumps(token_response.refresh_token)
-    target_url_json = json.dumps(target_url)
+    # Check if backend and frontend are on the same origin
+    import urllib.parse
+    backend_origin = urllib.parse.urlparse(str(request.url)).netloc
+    frontend_origin = urllib.parse.urlparse(frontend_base).netloc
+    same_origin = backend_origin == frontend_origin
 
-    auto_login_html = f"""<!DOCTYPE html>
+    if same_origin:
+        # Same origin: safe to set localStorage directly and redirect
+        target_url = f"{frontend_base}{target_path}"
+        user_dict_json = json.dumps(token_response.user.model_dump(mode="json"))
+        access_token_json = json.dumps(token_response.access_token)
+        refresh_token_json = json.dumps(token_response.refresh_token)
+        target_url_json = json.dumps(target_url)
+
+        auto_login_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -291,7 +299,48 @@ async def redeem_whatsapp_token_get(
   </div>
 </body>
 </html>"""
-    return HTMLResponse(content=auto_login_html, status_code=status.HTTP_200_OK)
+        return HTMLResponse(content=auto_login_html, status_code=status.HTTP_200_OK)
+    else:
+        # Cross-origin: pass tokens via URL hash fragment to the frontend callback page
+        # Hash fragments are never sent to the server, keeping tokens secure
+        import base64
+        auth_payload = json.dumps({
+            "access_token": token_response.access_token,
+            "refresh_token": token_response.refresh_token,
+            "user": token_response.user.model_dump(mode="json"),
+            "redirect": target_path,
+        })
+        encoded_payload = base64.urlsafe_b64encode(auth_payload.encode()).decode()
+        callback_url = f"{frontend_base}/auth/whatsapp/callback#{encoded_payload}"
+
+        redirect_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blood Connect - Signing in...</title>
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }}
+    .card {{ background: white; max-width: 440px; width: 100%; border-radius: 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); padding: 40px 24px; text-align: center; border: 1px solid #e2e8f0; }}
+    .spinner {{ border: 4px solid #f3f4f6; border-top: 4px solid #dc2626; border-radius: 50%; width: 44px; height: 44px; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }}
+    @keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}
+    h1 {{ font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 8px; }}
+    p {{ font-size: 14px; color: #64748b; margin: 0; }}
+  </style>
+  <script>
+    window.location.replace("{callback_url}");
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>Signing in to Blood Connect...</h1>
+    <p>Redirecting you securely...</p>
+    <p style="margin-top: 16px; font-size: 12px;"><a href="{callback_url}" style="color: #dc2626; font-weight: bold; text-decoration: none;">Click here if not redirected automatically &rarr;</a></p>
+  </div>
+</body>
+</html>"""
+        return HTMLResponse(content=redirect_html, status_code=status.HTTP_200_OK)
 
 
 @router.post(

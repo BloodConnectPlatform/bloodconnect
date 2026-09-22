@@ -200,7 +200,7 @@ export default function HomePage() {
                             key={bg}
                             type="button"
                             onClick={() => setSelectedGroup(selectedGroup === bg ? '' : bg)}
-                            className={`py-2 px-1 rounded-xl font-bold text-xs transition-all border text-center cursor-pointer ${
+                            className={`min-h-[44px] py-2.5 px-1 rounded-xl font-bold text-xs transition-all border text-center cursor-pointer flex items-center justify-center ${
                               selectedGroup === bg
                                 ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-500/20'
                                 : 'bg-slate-50 hover:bg-red-50 text-slate-800 border-slate-200 hover:border-red-200'
@@ -355,7 +355,7 @@ export default function HomePage() {
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Search by Blood Group & Location</h3>
               <p className="text-sm text-slate-600 leading-relaxed flex-1">
-                Filter donors by required blood group and any preferred location in Coimbatore. Privacy is strictly safeguarded: donor contact numbers remain concealed during public search.
+                Filter donors by required blood group and any preferred location in your region. Privacy is strictly safeguarded: donor contact numbers remain concealed during public search.
               </p>
               <div className="mt-6 pt-4 border-t border-slate-200 flex items-center gap-2 text-xs font-semibold text-slate-500">
                 <Shield className="w-4 h-4 text-emerald-600" />

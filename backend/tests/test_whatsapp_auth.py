@@ -341,8 +341,19 @@ async def test_magic_link_redemption_browser_html_redirect(
     assert res.status_code == 200
     assert "text/html" in res.headers["content-type"]
     assert "Signing in to Blood Connect..." in res.text
-    assert "localStorage.setItem('access_token'" in res.text
-    assert "/requester/dashboard" in res.text
+    # Response is either same-origin (localStorage) or cross-origin (callback redirect)
+    has_localstorage = "localStorage.setItem('access_token'" in res.text
+    has_callback_redirect = "/auth/whatsapp/callback#" in res.text
+    assert has_localstorage or has_callback_redirect, "Expected either localStorage or callback redirect in HTML"
+    if has_localstorage:
+        assert "/requester/dashboard" in res.text
+    elif has_callback_redirect:
+        import base64
+        import json
+        hash_b64 = res.text.split("/auth/whatsapp/callback#")[1].split('"')[0]
+        hash_b64 += "=" * ((4 - len(hash_b64) % 4) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(hash_b64.encode()).decode())
+        assert payload["redirect"] == "/requester/dashboard"
 
 
 # -----------------------------------------------------------------------------
