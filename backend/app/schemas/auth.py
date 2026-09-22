@@ -110,6 +110,11 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class WhatsAppTokenRedeemRequest(BaseModel):
+    token: str = Field(..., min_length=16, description="Cryptographic WhatsApp magic login token")
+
+
 class LogoutResponse(BaseModel):
     success: bool
     message: str
+

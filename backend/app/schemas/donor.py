@@ -123,3 +123,10 @@ class DonorDashboardResponse(BaseModel):
     pending_requests: List[DonorRequestSummary] = []
     accepted_requests: List[DonorRequestSummary] = []
     recent_requests: List[DonorRequestSummary] = []
+
+
+class PublicStatsResponse(BaseModel):
+    total_donors: int = Field(0, description="Total verified, active donors")
+    available_donors: int = Field(0, description="Total verified, active, and currently available donors")
+    total_locations: int = Field(0, description="Total active donation regions/locations")
+

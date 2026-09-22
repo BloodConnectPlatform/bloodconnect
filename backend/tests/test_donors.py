@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.blood_request import BloodRequest
@@ -383,3 +383,25 @@ async def test_requester_cannot_access_donor_endpoints(
     # /donors/availability -> 403
     res_avail = await client.patch("/api/v1/donors/availability", headers=headers, json={"is_available": True})
     assert res_avail.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_public_stats_endpoint(
+    client: AsyncClient, db_session: AsyncSession
+):
+    """Test GET /api/v1/donors/public-stats returns correct live database counts without authentication."""
+    # Get seeded locations count
+    loc_res = await db_session.execute(select(func.count(Location.id)).where(Location.is_active.is_(True)))
+    expected_locations = loc_res.scalar() or 0
+
+    res = await client.get("/api/v1/donors/public-stats")
+    assert res.status_code == 200
+    data = res.json()
+    assert "total_donors" in data
+    assert "available_donors" in data
+    assert "total_locations" in data
+    assert data["total_locations"] == expected_locations
+    assert isinstance(data["total_donors"], int)
+    assert isinstance(data["available_donors"], int)
+    assert data["available_donors"] <= data["total_donors"]
+

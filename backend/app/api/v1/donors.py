@@ -15,6 +15,7 @@ from app.schemas.donor import (
     DonorProfileUpdateRequest,
     DonorRegisterRequest,
     PublicDonorResponse,
+    PublicStatsResponse,
 )
 from app.services.donor_service import donor_service
 
@@ -63,6 +64,19 @@ async def search_donors(
         page=page,
         size=size
     )
+
+
+@router.get(
+    "/public-stats",
+    response_model=PublicStatsResponse,
+    summary="Get public platform statistics",
+    description="Returns verified live counts of registered donors, available donors, and active regions for public display."
+)
+async def get_public_stats(
+    db: AsyncSession = Depends(get_db)
+):
+    return await donor_service.get_public_stats(db)
+
 
 
 @router.get(

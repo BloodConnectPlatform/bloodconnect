@@ -9,7 +9,6 @@ import {
   Heart,
   Search,
   Shield,
-  Clock,
   MapPin,
   CheckCircle2,
   ArrowRight,
@@ -49,10 +48,9 @@ export default function HomePage() {
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>('');
   const [locationQuery, setLocationQuery] = useState<string>('');
   const [stats, setStats] = useState({
-    total_donors: 148,
-    available_donors: 112,
-    total_locations: 11,
-    avg_response_mins: 15,
+    total_donors: 0,
+    available_donors: 0,
+    total_locations: 0,
   });
 
   useEffect(() => {
@@ -64,13 +62,12 @@ export default function HomePage() {
       setLocations(DEFAULT_LOCATIONS);
     });
 
-    api.getAdminStats().then((res) => {
-      if (res && res.total_donors) {
+    api.getPublicStats().then((res) => {
+      if (res) {
         setStats({
-          total_donors: res.total_donors || 148,
-          available_donors: res.available_donors || 112,
-          total_locations: 11,
-          avg_response_mins: 15,
+          total_donors: res.total_donors ?? 0,
+          available_donors: res.available_donors ?? 0,
+          total_locations: res.total_locations ?? 0,
         });
       }
     }).catch(() => {});
@@ -311,12 +308,12 @@ export default function HomePage() {
       {/* ================= PLATFORM STATISTICS ================= */}
       <section className="py-12 bg-slate-50 border-b border-slate-200/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
             <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
               <div className="w-10 h-10 bg-red-100 rounded-xl text-red-600 flex items-center justify-center mx-auto mb-3">
                 <Heart className="w-5 h-5 fill-red-600" />
               </div>
-              <div className="text-3xl font-black text-slate-900">{stats.total_donors}+</div>
+              <div className="text-3xl font-black text-slate-900">{stats.total_donors}</div>
               <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Voluntary Donors
               </div>
@@ -336,19 +333,9 @@ export default function HomePage() {
               <div className="w-10 h-10 bg-blue-100 rounded-xl text-blue-600 flex items-center justify-center mx-auto mb-3">
                 <MapPin className="w-5 h-5" />
               </div>
-              <div className="text-3xl font-black text-slate-900">{stats.total_locations}+</div>
+              <div className="text-3xl font-black text-slate-900">{stats.total_locations}</div>
               <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
                 Regions Covered
-              </div>
-            </div>
-
-            <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-xs">
-              <div className="w-10 h-10 bg-amber-100 rounded-xl text-amber-600 flex items-center justify-center mx-auto mb-3">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div className="text-3xl font-black text-slate-900">&lt; 15m</div>
-              <div className="text-xs font-semibold text-slate-500 mt-1 uppercase tracking-wider">
-                Avg. Connection Speed
               </div>
             </div>
           </div>

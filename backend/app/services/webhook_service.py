@@ -19,6 +19,7 @@ from app.models.enums import NotificationDeliveryStatus, RequestStatus, WebhookE
 from app.models.notification_log import NotificationLog
 from app.models.webhook_event import WebhookEvent
 from app.services.request_service import request_service
+from app.services.whatsapp_auth_service import whatsapp_auth_service
 
 logger = logging.getLogger("webhook_service")
 
@@ -147,6 +148,22 @@ class WhatsAppWebhookService:
                         if is_duplicate:
                             logger.info(f"[WebhookService] Skipping duplicate event {msg_id}")
                             processed_actions.append({"msg_id": msg_id, "action": "duplicate_skipped"})
+                            continue
+
+                    # Check for LOGIN command
+                    msg_type = message.get("type")
+                    if msg_type == "text":
+                        raw_body = (message.get("text", {}).get("body") or "").strip()
+                        cleaned_body = raw_body.strip(".! \r\n\t").upper()
+                        if cleaned_body == "LOGIN":
+                            logger.info(f"[WebhookService] Received LOGIN text command from sender: {sender_mobile}")
+                            login_result = await self.handle_login_request(
+                                db=db,
+                                sender_mobile=sender_mobile,
+                                raw_message=message
+                            )
+                            logger.info(f"[WebhookService] LOGIN handling result for {sender_mobile}: {login_result}")
+                            processed_actions.append({"msg_id": msg_id, "action": "whatsapp_login", "result": login_result})
                             continue
 
                     # Extract interactive response / payload
@@ -335,6 +352,60 @@ class WhatsAppWebhookService:
                 return {"status": "error", "message": str(e)}
 
         return {"status": "unknown_action", "action": action}
+
+    async def handle_login_request(
+        self,
+        db: AsyncSession,
+        sender_mobile: str,
+        raw_message: Optional[dict] = None
+    ) -> Dict[str, Any]:
+        """Handle incoming LOGIN message request."""
+        return await whatsapp_auth_service.handle_login_request(
+            db=db,
+            sender_mobile=sender_mobile,
+            raw_message=raw_message
+        )
+
+    async def create_whatsapp_login_token(
+        self,
+        db: AsyncSession,
+        user: User,
+        whatsapp_phone: str,
+        request_metadata: Optional[dict] = None
+    ):
+        """Create and persist a hashed WhatsApp login token."""
+        return await whatsapp_auth_service.create_whatsapp_login_token(
+            db=db,
+            user=user,
+            whatsapp_phone=whatsapp_phone,
+            request_metadata=request_metadata
+        )
+
+    async def send_whatsapp_login_link(
+        self,
+        to_mobile: str,
+        magic_url: str
+    ):
+        """Send magic login link reply."""
+        return await whatsapp_auth_service.send_whatsapp_login_link(
+            to_mobile=to_mobile,
+            magic_url=magic_url
+        )
+
+    async def redeem_whatsapp_login_token(
+        self,
+        db: AsyncSession,
+        raw_token: str,
+        client_ip: Optional[str] = None,
+        user_agent: Optional[str] = None
+    ):
+        """Redeem a WhatsApp magic login token atomically."""
+        return await whatsapp_auth_service.redeem_whatsapp_login_token(
+            db=db,
+            raw_token=raw_token,
+            client_ip=client_ip,
+            user_agent=user_agent
+        )
 
 
 webhook_service = WhatsAppWebhookService()

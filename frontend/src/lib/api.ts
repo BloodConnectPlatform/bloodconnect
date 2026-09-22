@@ -8,6 +8,7 @@ import {
   NotificationItem,
   PaginatedResponse,
   PublicDonor,
+  PublicStats,
   ReportItem,
   ReportReason,
   ReportStatus,
@@ -151,6 +152,18 @@ class ApiClient {
     return res;
   }
 
+  async redeemWhatsAppToken(token: string) {
+    const res = await this.request<AuthTokens>('/auth/whatsapp/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+    this.setTokens(res.access_token, res.refresh_token);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('bloodconnect_user', JSON.stringify(res.user));
+    }
+    return res;
+  }
+
   async getMe() {
     return this.request<User>('/auth/me');
   }
@@ -239,6 +252,10 @@ class ApiClient {
     if (params.page_size) query.append('page_size', params.page_size.toString());
 
     return this.request<PaginatedResponse<PublicDonor>>(`/donors/search?${query.toString()}`);
+  }
+
+  async getPublicStats() {
+    return this.request<PublicStats>('/donors/public-stats');
   }
 
   // ===================== BLOOD REQUESTS =====================

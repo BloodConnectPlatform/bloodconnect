@@ -26,6 +26,7 @@ from app.schemas.donor import (
     DonorRequestSummary,
     LocationResponse,
     PublicDonorResponse,
+    PublicStatsResponse,
 )
 from app.services.otp_service import otp_service
 
@@ -390,5 +391,39 @@ class DonorService:
             recent_requests=recent_list
         )
 
+    async def get_public_stats(self, db: AsyncSession) -> PublicStatsResponse:
+        """Retrieve aggregated live public platform counts: verified active donors, available donors, and active locations."""
+        total_donors_stmt = (
+            select(func.count(DonorProfile.id))
+            .join(DonorProfile.user)
+            .where(
+                DonorProfile.is_active.is_(True),
+                DonorProfile.is_otp_verified.is_(True),
+                User.is_active.is_(True)
+            )
+        )
+        available_donors_stmt = (
+            select(func.count(DonorProfile.id))
+            .join(DonorProfile.user)
+            .where(
+                DonorProfile.is_active.is_(True),
+                DonorProfile.is_available.is_(True),
+                DonorProfile.is_otp_verified.is_(True),
+                User.is_active.is_(True)
+            )
+        )
+        locations_stmt = select(func.count(Location.id)).where(Location.is_active.is_(True))
+
+        total_donors_res = await db.execute(total_donors_stmt)
+        available_donors_res = await db.execute(available_donors_stmt)
+        locations_res = await db.execute(locations_stmt)
+
+        return PublicStatsResponse(
+            total_donors=total_donors_res.scalar() or 0,
+            available_donors=available_donors_res.scalar() or 0,
+            total_locations=locations_res.scalar() or 0
+        )
+
 
 donor_service = DonorService()
+

@@ -61,6 +61,24 @@ app.add_middleware(
 # Include API v1 Router & Webhooks Router
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 app.include_router(webhooks_router)
+app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX)
+
+# Top-level magic link alias: GET /auth/whatsapp
+from app.api.v1.auth import redeem_whatsapp_token_get, get_whatsapp_config
+app.add_api_route(
+    "/auth/whatsapp",
+    redeem_whatsapp_token_get,
+    methods=["GET"],
+    tags=["Authentication"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/auth/whatsapp/config",
+    get_whatsapp_config,
+    methods=["GET"],
+    tags=["Authentication"],
+    include_in_schema=True
+)
 
 
 @app.api_route("/", methods=["GET", "HEAD"], tags=["Root"])

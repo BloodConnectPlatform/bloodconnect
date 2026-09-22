@@ -171,3 +171,10 @@ export interface PaginatedResponse<T> {
   page_size: number;
   total_pages: number;
 }
+
+export interface PublicStats {
+  total_donors: number;
+  available_donors: number;
+  total_locations: number;
+}
+

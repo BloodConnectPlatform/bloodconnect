@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, Heart, ArrowRight, User as UserIcon } from 'lucide-react';
+import { Phone, KeyRound, Loader2, AlertCircle, CheckCircle2, Heart, ArrowRight, User as UserIcon, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import { redirectToWhatsAppLogin } from '@/lib/whatsapp';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -162,7 +163,35 @@ export default function LoginPage() {
           )}
 
           {step === 'PHONE' ? (
-            <form onSubmit={handleSendOtp} className="space-y-4">
+            <div className="space-y-4">
+              {/* WhatsApp Fast Login */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-2.5">
+                <div className="flex items-center justify-center gap-2 text-emerald-800 font-extrabold text-sm">
+                  <MessageCircle className="w-5 h-5 text-emerald-600" />
+                  <span>One-Click WhatsApp Fast Login</span>
+                </div>
+                <p className="text-xs text-emerald-700 leading-relaxed">
+                  Click below to open WhatsApp with the <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">LOGIN</span> message ready to send.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Open WhatsApp &amp; Send LOGIN</span>
+                </button>
+              </div>
+
+              <div className="relative flex items-center justify-center my-3">
+                <div className="border-t border-slate-200 w-full" />
+                <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Or sign in with SMS OTP
+                </span>
+                <div className="border-t border-slate-200 w-full" />
+              </div>
+
+              <form onSubmit={handleSendOtp} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                   Full Name (Required for new requesters)
@@ -227,6 +256,7 @@ export default function LoginPage() {
                 </p>
               </div>
             </form>
+          </div>
           ) : (
             <form onSubmit={handleVerifyLogin} className="space-y-5">
               <div>

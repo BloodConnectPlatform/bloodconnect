@@ -18,7 +18,9 @@ import {
   X,
   AlertTriangle,
   User as UserIcon,
+  MessageCircle,
 } from 'lucide-react';
+import { redirectToWhatsAppLogin, fetchAndSyncWhatsAppConfig } from '@/lib/whatsapp';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -27,6 +29,7 @@ export const Navbar: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    fetchAndSyncWhatsAppConfig();
     if (isAuthenticated) {
       api.getNotifications(1, 10).then((res) => {
         const unread = res.items.filter((n) => !n.is_read).length;
@@ -176,11 +179,12 @@ export const Navbar: React.FC = () => {
               </div>
             ) : (
               <button
-                onClick={openLoginModal}
-                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                title="Fast WhatsApp Login & Registration"
               >
-                <UserIcon className="w-4 h-4" />
-                <span>Sign In</span>
+                <MessageCircle className="w-4 h-4" />
+                <span>Sign In / Register</span>
               </button>
             )}
           </div>
@@ -289,12 +293,12 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  openLoginModal();
+                  redirectToWhatsAppLogin('LOGIN');
                 }}
-                className="w-full py-3 px-4 text-center font-bold text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 text-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
               >
-                <UserIcon className="w-4 h-4" />
-                <span>Sign In</span>
+                <MessageCircle className="w-4 h-4" />
+                <span>Sign In / Register via WhatsApp</span>
               </button>
             </div>
           )}
