@@ -261,3 +261,22 @@ async def test_whatsapp(
         language_code=request.language_code or "en_US"
     )
 
+
+@router.post(
+    "/seed-locations",
+    summary="Seed or Reactivate Predefined Locations in Database",
+    description="Idempotently creates any missing predefined locations and activates existing ones in PostgreSQL or SQLite. Protected by Admin JWT or X-Admin-Secret."
+)
+async def seed_locations_endpoint(
+    auth_context: AdminAuthContext = Depends(require_admin_or_bootstrap_secret),
+    db: AsyncSession = Depends(get_db)
+):
+    from app.seeds.locations import seed_locations
+    count = await seed_locations(db)
+    return {
+        "status": "success",
+        "locations_updated": count,
+        "message": f"Predefined locations successfully verified and activated ({count} locations created or updated)."
+    }
+
+

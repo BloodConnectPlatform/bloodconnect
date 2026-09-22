@@ -17,9 +17,22 @@ import {
   User,
 } from '@/types';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' ? '/api/v1' : 'http://127.0.0.1:8000/api/v1');
+function getApiBaseUrl(): string {
+  let url = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (url) {
+    url = url.replace(/\/+$/, '');
+    if (!url.endsWith('/api/v1')) {
+      url = `${url}/api/v1`;
+    }
+    return url;
+  }
+  return typeof window !== 'undefined'
+    ? '/api/v1'
+    : (process.env.INTERNAL_API_URL ? `${process.env.INTERNAL_API_URL.replace(/\/+$/, '')}/api/v1` : 'http://127.0.0.1:8000/api/v1');
+}
+
+const API_BASE_URL = getApiBaseUrl();
+
 
 class ApiClient {
   private getAuthToken(): string | null {

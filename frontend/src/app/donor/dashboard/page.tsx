@@ -23,6 +23,7 @@ import {
 import { BloodRequest, DonorProfile, LocationItem } from '@/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { DEFAULT_LOCATIONS } from '@/lib/constants';
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer';
 
 export default function DonorDashboardPage() {
@@ -33,7 +34,7 @@ export default function DonorDashboardPage() {
   const [pendingRequests, setPendingRequests] = useState<BloodRequest[]>([]);
   const [acceptedRequests, setAcceptedRequests] = useState<BloodRequest[]>([]);
   const [allRequests, setAllRequests] = useState<BloodRequest[]>([]);
-  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [locations, setLocations] = useState<LocationItem[]>(DEFAULT_LOCATIONS);
 
   const [activeTab, setActiveTab] = useState<'PENDING' | 'ACCEPTED' | 'ALL'>('PENDING');
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +77,12 @@ export default function DonorDashboardPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchDashboardData();
-      api.getLocations().then(setLocations).catch(() => {});
+      api.getLocations().then((res) => {
+        if (res && res.length > 0) setLocations(res);
+      }).catch(() => {
+        setLocations(DEFAULT_LOCATIONS);
+      });
+
     }
   }, [isAuthenticated]);
 

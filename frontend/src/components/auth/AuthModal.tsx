@@ -198,13 +198,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {step === 'PHONE' ? (
             <div className="space-y-4">
               {/* Primary WhatsApp Fast Login Button */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-2.5">
-                <div className="flex items-center justify-center gap-2 text-emerald-800 font-bold text-sm">
+              <div className="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 text-center space-y-2.5">
+                <div className="flex items-center justify-center gap-2 text-emerald-900 font-extrabold text-sm">
                   <MessageCircle className="w-4 h-4 text-emerald-600" />
                   <span>Fast WhatsApp Authentication</span>
                 </div>
                 <p className="text-xs text-emerald-700 leading-relaxed">
-                  Sends <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-200">LOGIN</span> to our WhatsApp number to receive an instant single-use magic login link.
+                  Sends <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">LOGIN</span> to our WhatsApp number to receive an instant single-use magic login link.
                 </p>
                 <button
                   type="button"
@@ -219,70 +219,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 </button>
               </div>
 
-              <div className="relative flex items-center justify-center my-2">
-                <div className="border-t border-slate-200 w-full" />
-                <span className="bg-white px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Or sign in with SMS OTP
-                </span>
-                <div className="border-t border-slate-200 w-full" />
-              </div>
+              {/* SMS OTP - Disabled & Marked Coming Soon */}
+              <div className="pt-1">
+                <div className="relative flex items-center justify-center mb-3">
+                  <div className="border-t border-slate-200 w-full" />
+                  <div className="bg-white px-3 flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                      SMS OTP Sign In
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <div className="border-t border-slate-200 w-full" />
+                </div>
 
-              <form onSubmit={handleSendOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Full Name (Required for new Requesters)
-                </label>
-                <div className="relative">
-                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="e.g. Anand Kumar"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
-                  />
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3 opacity-60">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                      Mobile Number
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        disabled
+                        placeholder="9876543210"
+                        value=""
+                        className="w-full pl-11 pr-4 py-2 text-sm text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-2.5 px-4 bg-slate-200 text-slate-400 font-semibold text-xs rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <span>SMS Verification Unavailable (Coming Soon)</span>
+                  </button>
+
+                  <p className="text-[10px] text-slate-500 text-center leading-tight">
+                    Direct SMS OTP verification is undergoing carrier upgrades. Please use instant WhatsApp login above.
+                  </p>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Mobile Number *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    placeholder="9876543210"
-                    value={mobileNumber.replace(/^\+91/, '')}
-                    onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                    required
-                    className="w-full pl-12 pr-4 py-2.5 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden transition-all placeholder:text-slate-400 font-medium"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1.5">
-                  We use secure passwordless SMS verification. No password needed.
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading || mobileNumber.length < 10}
-                className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-300 text-white font-semibold text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Sending OTP...
-                  </>
-                ) : (
-                  'Send One-Time Passcode'
-                )}
-              </button>
-
-              <div className="text-center pt-2">
+              <div className="text-center pt-1">
                 <p className="text-xs text-slate-500">
                   New voluntary donor?{' '}
                   <button
@@ -297,8 +282,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   </button>
                 </p>
               </div>
-            </form>
-          </div>
+            </div>
           ) : (
             <form onSubmit={handleVerifyLogin} className="space-y-4">
               <div>
