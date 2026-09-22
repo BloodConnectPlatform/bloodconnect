@@ -86,7 +86,7 @@ class RequestService:
 
         # 5. Location verification
         req_location_id = data.location_id if data.location_id is not None else donor.location_id
-        loc_stmt = select(Location).where(Location.id == req_location_id, Location.is_active.is_(True))
+        loc_stmt = select(Location).where(Location.id == req_location_id, Location.is_active.is_not(False))
         loc_res = await db.execute(loc_stmt)
         location = loc_res.scalar_one_or_none()
         if not location:
@@ -94,6 +94,7 @@ class RequestService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid or inactive donation location selected."
             )
+
 
         # 6. Build Unified Message from patient/hospital/urgency/message fields
         details = []

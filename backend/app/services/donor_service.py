@@ -34,10 +34,24 @@ from app.services.otp_service import otp_service
 class DonorService:
     async def list_locations(self, db: AsyncSession) -> List[LocationResponse]:
         """Retrieve all active predefined donation locations."""
-        stmt = select(Location).where(Location.is_active.is_(True)).order_by(Location.name.asc())
+        stmt = (
+            select(Location)
+            .where(Location.is_active.is_not(False))
+            .order_by(Location.name.asc())
+        )
         result = await db.execute(stmt)
         locations = result.scalars().all()
-        return [LocationResponse.model_validate(loc) for loc in locations]
+        return [
+            LocationResponse(
+                id=loc.id,
+                name=loc.name,
+                district=loc.district or "Coimbatore",
+                state=loc.state or "Tamil Nadu",
+                is_active=True if loc.is_active is None else loc.is_active
+            )
+            for loc in locations
+        ]
+
 
     async def register_donor(
         self, db: AsyncSession, data: DonorRegisterRequest
@@ -69,7 +83,7 @@ class DonorService:
             )
 
         # 2. Verify location exists and is active
-        loc_stmt = select(Location).where(Location.id == data.location_id, Location.is_active.is_(True))
+        loc_stmt = select(Location).where(Location.id == data.location_id, Location.is_active.is_not(False))
         loc_result = await db.execute(loc_stmt)
         location = loc_result.scalar_one_or_none()
         if not location:
@@ -77,6 +91,7 @@ class DonorService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Selected location does not exist or is inactive."
             )
+
 
         # 3. Check existing user
         user_stmt = select(User).where(User.mobile == data.mobile)
@@ -278,7 +293,7 @@ class DonorService:
         if data.location_id is not None:
             loc_stmt = select(Location).where(
                 Location.id == data.location_id,
-                Location.is_active.is_(True)
+                Location.is_active.is_not(False)
             )
             loc_result = await db.execute(loc_stmt)
             location = loc_result.scalar_one_or_none()
@@ -288,6 +303,7 @@ class DonorService:
                     detail="Selected location does not exist or is inactive."
                 )
             profile.location_id = data.location_id
+
 
         if data.is_available is not None:
             profile.is_available = data.is_available
@@ -415,7 +431,7 @@ class DonorService:
                 User.is_active.is_(True)
             )
         )
-        locations_stmt = select(func.count(Location.id)).where(Location.is_active.is_(True))
+        locations_stmt = select(func.count(Location.id)).where(Location.is_active.is_not(False))
 
         total_donors_res = await db.execute(total_donors_stmt)
         available_donors_res = await db.execute(available_donors_stmt)

@@ -163,100 +163,89 @@ export default function LoginPage() {
           )}
 
           {step === 'PHONE' ? (
-            <div className="space-y-4">
-              {/* WhatsApp Fast Login */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-2.5">
-                <div className="flex items-center justify-center gap-2 text-emerald-800 font-extrabold text-sm">
-                  <MessageCircle className="w-5 h-5 text-emerald-600" />
-                  <span>One-Click WhatsApp Fast Login</span>
+            <div className="space-y-5">
+              {/* WhatsApp Fast Login - Primary & Only Active Login Method */}
+              <div className="bg-emerald-50/90 border-2 border-emerald-300 rounded-2xl p-5 text-center space-y-3 shadow-xs">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Instant Access</span>
                 </div>
-                <p className="text-xs text-emerald-700 leading-relaxed">
-                  Click below to open WhatsApp with the <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">LOGIN</span> message ready to send.
-                </p>
+                <div>
+                  <div className="flex items-center justify-center gap-2 text-emerald-900 font-black text-base">
+                    <MessageCircle className="w-5 h-5 text-emerald-600" />
+                    <span>Passwordless WhatsApp Sign In</span>
+                  </div>
+                  <p className="text-xs text-emerald-700 leading-relaxed mt-1">
+                    Tap below to open WhatsApp with <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">LOGIN</span> pre-filled. You will receive an instant 1-click magic sign-in link.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => redirectToWhatsAppLogin('LOGIN')}
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer"
                 >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Open WhatsApp &amp; Send LOGIN</span>
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Sign In via WhatsApp (Send LOGIN)</span>
                 </button>
               </div>
 
-              <div className="relative flex items-center justify-center my-3">
-                <div className="border-t border-slate-200 w-full" />
-                <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Or sign in with SMS OTP
-                </span>
-                <div className="border-t border-slate-200 w-full" />
-              </div>
+              {/* SMS OTP - Disabled & Marked Coming Soon */}
+              <div className="pt-2">
+                <div className="relative flex items-center justify-center mb-4">
+                  <div className="border-t border-slate-200 w-full" />
+                  <div className="bg-white px-3 flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      SMS OTP Login
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                      Coming Soon
+                    </span>
+                  </div>
+                  <div className="border-t border-slate-200 w-full" />
+                </div>
 
-              <form onSubmit={handleSendOtp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Full Name (Required for new requesters)
-                </label>
-                <div className="relative">
-                  <UserIcon className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="e.g. Ramesh Kumar"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-medium focus:ring-2 focus:ring-red-500 outline-hidden placeholder:text-slate-400"
-                  />
+                <div className="p-4 bg-slate-50/80 border border-slate-200 rounded-2xl space-y-3.5 opacity-60">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Mobile Number
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        disabled
+                        placeholder="9876543210"
+                        value=""
+                        className="w-full pl-14 pr-4 py-2.5 text-sm text-slate-500 bg-slate-100 border border-slate-200 rounded-xl font-bold cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-3 bg-slate-200 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <span>SMS Verification Unavailable (Coming Soon)</span>
+                  </button>
+
+                  <p className="text-[11px] text-slate-500 text-center leading-snug">
+                    Direct SMS OTP authentication is undergoing carrier gateway upgrades. Please use instant WhatsApp sign in above.
+                  </p>
                 </div>
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Mobile Number *
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    placeholder="9876543210"
-                    value={mobileNumber.replace(/^\+91/, '')}
-                    onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                    required
-                    autoFocus
-                    className="w-full pl-14 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-red-500 outline-hidden placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading || mobileNumber.length < 10}
-                className="w-full py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Sending OTP...
-                  </>
-                ) : (
-                  <>
-                    <span>Login</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
 
               <div className="text-center pt-2">
                 <p className="text-xs text-slate-500">
                   Want to donate blood?{' '}
                   <Link href="/register" className="text-red-600 font-bold hover:underline">
-                    Register as Donor
+                    Register as Voluntary Donor
                   </Link>
                 </p>
               </div>
-            </form>
-          </div>
+            </div>
           ) : (
             <form onSubmit={handleVerifyLogin} className="space-y-5">
               <div>

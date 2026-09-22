@@ -24,10 +24,10 @@ INITIAL_LOCATIONS = [
 
 
 async def seed_locations(session: AsyncSession) -> int:
-    """Seed predefined locations if they do not already exist."""
+    """Seed predefined locations if they do not already exist, and guarantee all locations are active."""
     count = 0
     for loc_data in INITIAL_LOCATIONS:
-        stmt = select(Location).where(Location.name == loc_data["name"])
+        stmt = select(Location).where(Location.name.ilike(loc_data["name"]))
         result = await session.execute(stmt)
         existing = result.scalar_one_or_none()
         if not existing:
@@ -39,12 +39,40 @@ async def seed_locations(session: AsyncSession) -> int:
             )
             session.add(location)
             count += 1
+        else:
+            # Guarantee existing row has is_active = True and valid district/state
+            updated = False
+            if existing.is_active is not True:
+                existing.is_active = True
+                updated = True
+            if not existing.district:
+                existing.district = loc_data["district"]
+                updated = True
+            if not existing.state:
+                existing.state = loc_data["state"]
+                updated = True
+            if updated:
+                count += 1
+
+    # Also activate any other manually inserted locations where is_active is NULL or False
+    stmt_all = select(Location).where(Location.is_active.is_not(True))
+    res_all = await session.execute(stmt_all)
+    inactive_locs = res_all.scalars().all()
+    for loc in inactive_locs:
+        loc.is_active = True
+        if not loc.district:
+            loc.district = "Coimbatore"
+        if not loc.state:
+            loc.state = "Tamil Nadu"
+        count += 1
+
     if count > 0:
         await session.commit()
-        logger.info(f"Successfully seeded {count} new locations.")
+        logger.info(f"Successfully seeded or activated {count} locations.")
     else:
-        logger.info("All predefined locations are already seeded.")
+        logger.info("All predefined locations are already seeded and active.")
     return count
+
 
 
 async def main():

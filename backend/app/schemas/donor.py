@@ -9,10 +9,12 @@ from app.schemas.auth import validate_indian_mobile, TokenResponse
 class LocationResponse(BaseModel):
     id: int
     name: str
-    district: str
-    state: str
+    district: str = Field("Coimbatore", description="District name")
+    state: str = Field("Tamil Nadu", description="State name")
+    is_active: bool = Field(True, description="Active status")
 
     model_config = {"from_attributes": True}
+
 
 
 class DonorRegisterRequest(BaseModel):

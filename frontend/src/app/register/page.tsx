@@ -24,6 +24,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { MedicalDisclaimer } from '@/components/common/MedicalDisclaimer';
 import { redirectToWhatsAppLogin } from '@/lib/whatsapp';
+import { DEFAULT_LOCATIONS } from '@/lib/constants';
 
 const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -58,22 +59,31 @@ function DonorRegistrationContent() {
   const [bloodGroup, setBloodGroup] = useState<BloodGroup>('A+');
   const [gender, setGender] = useState<Gender>('MALE');
   const [dateOfBirth, setDateOfBirth] = useState('2000-01-01');
-  const [locationId, setLocationId] = useState<number | ''>('');
+  const [locationId, setLocationId] = useState<number | ''>(DEFAULT_LOCATIONS[0].id);
   const [isAvailable, setIsAvailable] = useState(true);
   const [agreeDisclaimer, setAgreeDisclaimer] = useState(false);
 
   // Meta
-  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [locations, setLocations] = useState<LocationItem[]>(DEFAULT_LOCATIONS);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     api.getLocations().then((res) => {
-      setLocations(res);
-      if (res.length > 0) setLocationId(res[0].id);
-    }).catch(() => {});
+      if (res && res.length > 0) {
+        setLocations(res);
+        setLocationId((prev) => {
+          const exists = res.some((l) => l.id === prev);
+          return exists ? prev : res[0].id;
+        });
+      }
+    }).catch(() => {
+      setLocations(DEFAULT_LOCATIONS);
+      setLocationId(DEFAULT_LOCATIONS[0].id);
+    });
   }, []);
+
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -260,87 +270,100 @@ function DonorRegistrationContent() {
               </div>
             )}
 
-            {/* STEP 1: MOBILE NUMBER */}
+            {/* STEP 1: REGISTRATION METHOD SELECTION */}
             {step === 1 && (
               <div className="space-y-6">
-                {/* Fast WhatsApp Authentication Card */}
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2.5">
-                  <div className="flex items-center gap-2 text-emerald-800 font-extrabold text-sm">
-                    <MessageCircle className="w-4 h-4 text-emerald-600" />
-                    <span>Instant WhatsApp Sign In / Verification</span>
+                {/* Primary WhatsApp Registration Card */}
+                <div className="p-6 bg-emerald-50/90 border-2 border-emerald-300 rounded-3xl space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Instant 1-Click Verification</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                      Active
+                    </span>
                   </div>
-                  <p className="text-xs text-emerald-700 leading-relaxed">
-                    Skip manual OTP! Tap below to open WhatsApp with <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">LOGIN</span> pre-filled to authenticate instantly.
-                  </p>
+
+                  <div>
+                    <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5 text-emerald-600" />
+                      <span>Register via WhatsApp</span>
+                    </h3>
+                    <p className="text-xs text-emerald-800 leading-relaxed mt-1.5">
+                      Fastest and most reliable registration! Tap the button below to send <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">REGISTER</span> to our official WhatsApp account. You will immediately receive a 1-click link to complete your donor profile in 30 seconds without waiting for SMS OTPs.
+                    </p>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() => redirectToWhatsAppLogin('LOGIN')}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    onClick={() => redirectToWhatsAppLogin('REGISTER')}
+                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Authenticate via WhatsApp (Send LOGIN)</span>
+                    <MessageCircle className="w-5 h-5" />
+                    <span>Open WhatsApp &amp; Send REGISTER</span>
                   </button>
-                </div>
 
-                <div className="relative flex items-center justify-center my-2">
-                  <div className="border-t border-slate-200 w-full" />
-                  <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Or register with SMS OTP
-                  </span>
-                  <div className="border-t border-slate-200 w-full" />
-                </div>
-
-                <form onSubmit={handleSendOtp} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Enter Mobile Number
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      placeholder="9876543210"
-                      value={mobileNumber.replace(/^\+91/, '')}
-                      onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
-                      required
-                      autoFocus
-                      className="w-full pl-14 pr-4 py-3.5 text-base border border-slate-300 rounded-2xl font-bold text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
-                    />
+                  <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between text-xs text-emerald-800">
+                    <span>Already have a Blood Connect account?</span>
+                    <button
+                      type="button"
+                      onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                      className="font-bold underline hover:text-emerald-950 cursor-pointer"
+                    >
+                      Sign In via WhatsApp
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    We will send a 6-digit SMS verification code to verify your phone.
-                  </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-3">
-                  <ShieldCheck className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-slate-600 leading-relaxed">
-                    <strong>Privacy Guarantee:</strong> Your mobile number is never displayed in public searches. It is only shared when you accept an emergency blood request.
-                  </p>
-                </div>
+                {/* SMS OTP Registration - Disabled & Marked Coming Soon */}
+                <div className="pt-2">
+                  <div className="relative flex items-center justify-center mb-4">
+                    <div className="border-t border-slate-200 w-full" />
+                    <div className="bg-white px-3 flex items-center gap-2">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        SMS OTP Registration
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <div className="border-t border-slate-200 w-full" />
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={isLoading || mobileNumber.length < 10}
-                  className="w-full py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-300 text-white font-bold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending OTP...
-                    </>
-                  ) : (
-                    <>
-                      <span>Continue to Verification</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
+                  <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-4 opacity-60">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                        Mobile Number
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          disabled
+                          placeholder="9876543210"
+                          value=""
+                          className="w-full pl-14 pr-4 py-3 text-sm border border-slate-200 rounded-xl font-bold text-slate-500 bg-slate-100 cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled
+                      className="w-full py-3.5 bg-slate-200 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      <span>SMS OTP Registration Unavailable (Coming Soon)</span>
+                    </button>
+
+                    <p className="text-[11px] text-slate-500 text-center leading-snug">
+                      Direct SMS OTP registration is undergoing maintenance. Please tap the WhatsApp button above to register instantly.
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* STEP 2: OTP VERIFICATION */}
