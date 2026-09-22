@@ -1,7 +1,7 @@
 from datetime import date, datetime
-from typing import List, Optional
+from typing import Any, List, Optional
 import uuid
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from app.models.enums import BloodGroup, RequestStatus
 from app.schemas.auth import validate_indian_mobile, TokenResponse
 
@@ -24,6 +24,16 @@ class DonorRegisterRequest(BaseModel):
     blood_group: BloodGroup = Field(..., description="Donor blood group")
     location_id: int = Field(..., description="Predefined location ID")
     contact_consent: bool = Field(True, description="Consent to be contacted for blood donation")
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_field_aliases(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            if "full_name" in data and "name" not in data:
+                data["name"] = data["full_name"]
+            if "mobile_number" in data and "mobile" not in data:
+                data["mobile"] = data["mobile_number"]
+        return data
 
     @field_validator("mobile")
     @classmethod

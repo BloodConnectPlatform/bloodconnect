@@ -68,6 +68,6 @@ async def receive_whatsapp_webhook(
         )
 
     # 3. Process Events
-    result = await webhook_service.process_event_payload(db=db, payload=payload)
+    result = await webhook_service.process_event_payload(db=db, payload=payload, request=request)
 
     return {"status": "EVENT_RECEIVED", "details": result}

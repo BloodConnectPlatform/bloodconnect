@@ -178,14 +178,24 @@ export const Navbar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => redirectToWhatsAppLogin('LOGIN')}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
-                title="Fast WhatsApp Login & Registration"
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>Sign In / Register</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/register"
+                  className="px-4 py-2 text-slate-700 hover:text-red-600 font-bold text-xs sm:text-sm hover:bg-slate-50 rounded-xl transition-colors flex items-center gap-1.5"
+                >
+                  <Heart className="w-4 h-4 text-red-500" />
+                  <span>Register</span>
+                </Link>
+
+                <button
+                  onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Fast WhatsApp Login"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Sign In</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -289,7 +299,16 @@ export const Navbar: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="pt-3 border-t border-slate-100">
+            <div className="pt-3 border-t border-slate-100 space-y-2">
+              <Link
+                href="/register"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full py-3 px-4 text-center font-bold text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-xl flex items-center justify-center gap-2"
+              >
+                <Heart className="w-4 h-4 text-red-600" />
+                <span>Register as Voluntary Donor</span>
+              </Link>
+
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -298,7 +317,7 @@ export const Navbar: React.FC = () => {
                 className="w-full py-3 px-4 text-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Sign In / Register via WhatsApp</span>
+                <span>Sign In via WhatsApp</span>
               </button>
             </div>
           )}
