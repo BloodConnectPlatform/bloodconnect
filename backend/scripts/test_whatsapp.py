@@ -180,8 +180,8 @@ def main():
     )
     parser.add_argument(
         "--lang",
-        default="en_US",
-        help="Template language code (default: en_US)"
+        default=settings.WHATSAPP_TEMPLATE_LANGUAGE or "en",
+        help="Template language code (default: from settings or en)"
     )
 
     args = parser.parse_args()
