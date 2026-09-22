@@ -17,7 +17,12 @@ from app.models.notification import Notification
 from app.models.notification_log import NotificationLog
 from app.schemas.notification import NotificationListResponse, NotificationResponse
 from app.services.sms_service import BaseSMSProvider, get_sms_provider
-from app.services.whatsapp_service import BaseWhatsAppProvider, ProviderSendResult, get_whatsapp_provider
+from app.services.whatsapp_service import (
+    BaseWhatsAppProvider,
+    MetaWhatsAppProvider,
+    ProviderSendResult,
+    get_whatsapp_provider,
+)
 
 logger = logging.getLogger("notification_service")
 
@@ -485,6 +490,33 @@ class NotificationService:
         )
 
         async def _wa_send(provider: BaseWhatsAppProvider) -> ProviderSendResult:
+            template_name = settings.WHATSAPP_TEMPLATE_REQUEST_ACCEPTED
+            if template_name and template_name.lower() == "hello_world":
+                return await provider.send_template(
+                    to_mobile=requester_mobile,
+                    template_name="hello_world",
+                    language_code="en_US",
+                    components=[]
+                )
+            elif template_name and template_name != "none" and isinstance(provider, MetaWhatsAppProvider):
+                # Meta Cloud API Template: Great news! Donor {{1}} has ACCEPTED your {{2}} blood request. Donor Contact: {{3}}...
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": donor_name},
+                            {"type": "text", "text": blood_group},
+                            {"type": "text", "text": donor_mobile}
+                        ]
+                    }
+                ]
+                lang_code = settings.WHATSAPP_TEMPLATE_LANGUAGE or "en_US"
+                return await provider.send_template(
+                    to_mobile=requester_mobile,
+                    template_name=template_name,
+                    language_code=lang_code,
+                    components=components
+                )
             return await provider.send_text(to_mobile=requester_mobile, text=message)
 
         return await self._dispatch_with_fallback(
@@ -500,17 +532,45 @@ class NotificationService:
         self,
         requester_mobile: str,
         blood_group: str,
+        donor_name: Optional[str] = None,
         request_id: Optional[uuid.UUID] = None,
         user_id: Optional[uuid.UUID] = None,
         db: Optional[AsyncSession] = None
     ) -> NotificationResult:
         """Notify requester that donor is unable to donate at this time."""
+        donor_display = f"Donor {donor_name}" if donor_name else "The donor"
         message = (
-            f"BloodConnect Update: The donor was unable to accept your {blood_group} blood request at this time. "
+            f"BloodConnect Update: {donor_display} was unable to accept your {blood_group} blood request at this time. "
             f"Please browse other available matching donors on BloodConnect."
         )
 
         async def _wa_send(provider: BaseWhatsAppProvider) -> ProviderSendResult:
+            template_name = settings.WHATSAPP_TEMPLATE_REQUEST_REJECTED
+            if template_name and template_name.lower() == "hello_world":
+                return await provider.send_template(
+                    to_mobile=requester_mobile,
+                    template_name="hello_world",
+                    language_code="en_US",
+                    components=[]
+                )
+            elif template_name and template_name != "none" and isinstance(provider, MetaWhatsAppProvider):
+                # Meta Cloud API Template: Donor {{1}} was unable to accept your {{2}} blood request at this time...
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": donor_name or "The requested donor"},
+                            {"type": "text", "text": blood_group}
+                        ]
+                    }
+                ]
+                lang_code = settings.WHATSAPP_TEMPLATE_LANGUAGE or "en_US"
+                return await provider.send_template(
+                    to_mobile=requester_mobile,
+                    template_name=template_name,
+                    language_code=lang_code,
+                    components=components
+                )
             return await provider.send_text(to_mobile=requester_mobile, text=message)
 
         return await self._dispatch_with_fallback(
