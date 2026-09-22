@@ -115,6 +115,37 @@ class WhatsAppAuthService:
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
 
+        # Auto-provision / upgrade admin if mobile is in INITIAL_ADMIN_PHONE_NUMBERS
+        initial_admins = settings.INITIAL_ADMIN_PHONE_NUMBERS or []
+        if isinstance(initial_admins, str):
+            initial_admins = [p.strip() for p in initial_admins.split(",") if p.strip()]
+
+        is_admin_configured = any(
+            normalize_mobile(str(admin_p)) == norm_mobile
+            or str(admin_p) in phone_variants
+            or (len(str(admin_p).replace("+", "")) >= 10 and str(admin_p).replace("+", "")[-10:] == norm_mobile[-10:])
+            for admin_p in initial_admins
+        )
+
+        if is_admin_configured:
+            if not user:
+                logger.info(f"[WhatsAppAuthService] Mobile {masked} is configured in INITIAL_ADMIN_PHONE_NUMBERS. Auto-provisioning admin user.")
+                user = User(
+                    name="System Administrator",
+                    mobile=norm_mobile,
+                    role=UserRole.ADMIN,
+                    is_active=True,
+                )
+                db.add(user)
+                await db.commit()
+                await db.refresh(user)
+            elif user.role != UserRole.ADMIN:
+                logger.info(f"[WhatsAppAuthService] Upgrading user {masked} to ADMIN based on INITIAL_ADMIN_PHONE_NUMBERS.")
+                user.role = UserRole.ADMIN
+                user.is_active = True
+                await db.commit()
+                await db.refresh(user)
+
         # 2. Case: Unregistered User -> Provide 1-Click Pre-verified Registration Link
         if not user:
             logger.info(f"[WhatsAppAuthService] No account found for mobile {masked}. Generating pre-verified registration link.")

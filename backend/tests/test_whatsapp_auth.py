@@ -556,3 +556,40 @@ async def test_whatsapp_config_endpoints(client: AsyncClient):
     data2 = res2.json()
     assert data2["login_url"] == data1["login_url"]
 
+
+# -----------------------------------------------------------------------------
+# 14. Unregistered Number In INITIAL_ADMIN_PHONE_NUMBERS Auto-Provisions as Admin
+# -----------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_whatsapp_login_initial_admin_auto_provisioned(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch
+):
+    """Test that an unseeded number listed in INITIAL_ADMIN_PHONE_NUMBERS is auto-provisioned as ADMIN on WhatsApp LOGIN."""
+    admin_test_phone = "9876599999"
+    monkeypatch.setattr(settings, "INITIAL_ADMIN_PHONE_NUMBERS", [admin_test_phone])
+
+    # Send LOGIN from this unseeded admin phone
+    payload = create_whatsapp_webhook_payload(
+        mobile=admin_test_phone,
+        text="LOGIN",
+        msg_id="wamid.admin.auto.001"
+    )
+    res = await client.post("/webhooks/whatsapp", json=payload)
+    assert res.status_code == 200
+
+    # Verify WhatsApp message is a LOGIN link, NOT a registration link
+    sent = default_mock_whatsapp_provider.sent_messages
+    assert len(sent) == 1
+    assert "Blood Connect Login" in sent[0]["text"]
+    assert "/register" not in sent[0]["text"]
+
+    # Verify user exists in database with UserRole.ADMIN
+    stmt = select(User).where(User.mobile == admin_test_phone)
+    user = (await db_session.execute(stmt)).scalar_one_or_none()
+    assert user is not None
+    assert user.role == UserRole.ADMIN
+    assert user.is_active is True
+
+
