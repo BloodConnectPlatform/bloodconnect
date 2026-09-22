@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ShieldAlert,
   Users,
@@ -27,6 +28,8 @@ import {
   LogOut,
   ArrowRight,
   Shield,
+  Pencil,
+  UserCheck,
 } from 'lucide-react';
 import {
   AdminStats,
@@ -91,9 +94,13 @@ export default function AdminDashboardPage() {
   const [adminsList, setAdminsList] = useState<any[]>([]);
   const [isAdminsLoading, setIsAdminsLoading] = useState(false);
   const [promoteMobile, setPromoteMobile] = useState('');
+  const [promoteName, setPromoteName] = useState('');
   const [isPromoting, setIsPromoting] = useState(false);
   const [demoteTargetAdmin, setDemoteTargetAdmin] = useState<any | null>(null);
   const [isDemoting, setIsDemoting] = useState(false);
+  const [editTargetAdmin, setEditTargetAdmin] = useState<any | null>(null);
+  const [editAdminName, setEditAdminName] = useState('');
+  const [isUpdatingAdminName, setIsUpdatingAdminName] = useState(false);
 
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -177,14 +184,41 @@ export default function AdminDashboardPage() {
     if (!promoteMobile.trim()) return;
     setIsPromoting(true);
     try {
-      const res = await api.manageAdmins({ action: 'PROMOTE', mobile: promoteMobile.trim() });
-      setNotification({ type: 'success', text: res.message || 'User promoted successfully.' });
+      const res = await api.manageAdmins({
+        action: 'PROMOTE',
+        mobile: promoteMobile.trim(),
+        name: promoteName.trim() || undefined,
+      });
+      setNotification({ type: 'success', text: res.message || 'Administrator added/updated successfully.' });
       setPromoteMobile('');
+      setPromoteName('');
       loadAdmins();
     } catch (err: any) {
-      setNotification({ type: 'error', text: err.message || 'Failed to promote user.' });
+      setNotification({ type: 'error', text: err.message || 'Failed to add administrator.' });
     } finally {
       setIsPromoting(false);
+    }
+  };
+
+  const handleUpdateAdminName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTargetAdmin || !editAdminName.trim()) return;
+    setIsUpdatingAdminName(true);
+    try {
+      const res = await api.manageAdmins({
+        action: 'UPDATE_NAME',
+        mobile: editTargetAdmin.mobile,
+        user_id: editTargetAdmin.id,
+        name: editAdminName.trim(),
+      });
+      setNotification({ type: 'success', text: res.message || 'Administrator name updated successfully.' });
+      setEditTargetAdmin(null);
+      setEditAdminName('');
+      loadAdmins();
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err.message || 'Failed to update administrator name.' });
+    } finally {
+      setIsUpdatingAdminName(false);
     }
   };
 
@@ -372,226 +406,233 @@ export default function AdminDashboardPage() {
   if (isAuthenticated && user?.role !== 'ADMIN') {
     return (
       <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden text-center">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-amber-600 to-rose-700 p-8 text-white relative">
-            <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs">
-              <ShieldAlert className="w-7 h-7 text-white" />
-            </div>
-            <h2 className="text-2xl font-black">Access Restricted</h2>
-            <p className="text-xs text-amber-100 mt-1">
-              Administrator privileges required
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 p-8 text-center space-y-6">
+          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto border border-amber-200/60 shadow-xs">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Admin Access Required</h2>
+            <p className="text-xs text-slate-500">
+              This area is restricted to designated platform administrators.
             </p>
           </div>
 
-          {/* Body */}
-          <div className="p-8 space-y-6">
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2">
-              <div className="text-xs text-slate-500 font-medium">Currently signed in as:</div>
-              <div className="text-sm font-bold text-slate-900 flex items-center justify-between">
-                <span>{user?.name || user?.mobile}</span>
-                <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-slate-200 text-slate-700 uppercase">
-                  {user?.role}
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                This Operations Center is restricted to designated BloodConnect administrators.
-              </p>
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/70 text-left space-y-1 text-xs">
+            <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">Currently Signed In</div>
+            <div className="flex items-center justify-between font-bold text-slate-900">
+              <span>{user?.name || user?.mobile}</span>
+              <span className="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-black uppercase">
+                {user?.role}
+              </span>
             </div>
+          </div>
 
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => redirectToWhatsAppLogin('LOGIN')}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span>Switch to Admin via WhatsApp</span>
-              </button>
+          <div className="space-y-2.5 pt-1">
+            <button
+              type="button"
+              onClick={() => redirectToWhatsAppLogin('LOGIN')}
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
+            >
+              <MessageCircle className="w-4 h-4 fill-white" />
+              <span>Switch to Admin via WhatsApp</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={async () => {
-                  await logout();
-                  router.push('/login');
-                }}
-                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign Out Current Account</span>
-              </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await logout();
+                router.push('/login');
+              }}
+              className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (user?.role === 'DONOR') router.push('/donor/dashboard');
-                  else router.push('/requester/dashboard');
-                }}
-                className="block w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-800 py-1"
-              >
-                Return to My Dashboard &rarr;
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (user?.role === 'DONOR') router.push('/donor/dashboard');
+                else router.push('/requester/dashboard');
+              }}
+              className="block w-full text-center text-xs font-bold text-slate-500 hover:text-slate-900 pt-2 cursor-pointer"
+            >
+              &larr; Return to Dashboard
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Case 2: Not Authenticated
+  // Case 2: Not Authenticated (Clean, Uncluttered Admin Gateway)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6">
-        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
+      <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 sm:px-6">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 p-8 sm:p-10 space-y-6">
+          
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-800 to-indigo-900 p-8 text-white text-center relative">
-            <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs">
-              <ShieldAlert className="w-7 h-7 text-white" />
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 bg-purple-50 text-purple-700 rounded-3xl flex items-center justify-center mx-auto border border-purple-100 shadow-xs">
+              <ShieldAlert className="w-8 h-8" />
             </div>
-            <h2 className="text-2xl font-black">Admin Operations Center</h2>
-            <p className="text-xs text-purple-200 mt-1">
-              Restricted portal for voluntary donor oversight, safety moderation, and platform statistics.
+            
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-[11px] font-black uppercase tracking-wider">
+                <span>BloodConnect Admin</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Operations Center
+              </h1>
+              <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                Sign in to manage donors, blood requests, and emergency moderation.
+              </p>
+            </div>
+          </div>
+
+          {/* Primary Action: 1-Click WhatsApp Sign In */}
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => redirectToWhatsAppLogin('LOGIN')}
+              className="w-full py-4 px-5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-sm sm:text-base rounded-2xl shadow-md hover:shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer min-h-[48px]"
+            >
+              <MessageCircle className="w-5 h-5 fill-white" />
+              <span>1-CLICK SIGN IN VIA WHATSAPP</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+            <p className="text-[11px] text-center text-slate-400 font-medium">
+              Instant passwordless access for registered administrator numbers
             </p>
           </div>
 
-          {/* Body */}
-          <div className="p-8 space-y-6">
-            {/* Primary: WhatsApp Fast Magic Login */}
-            <div className="bg-purple-50/90 border-2 border-purple-300 rounded-2xl p-5 text-center space-y-3 shadow-xs">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-black uppercase tracking-wider">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Instant Access</span>
-              </div>
+          {/* Clean Divider */}
+          <div className="relative flex items-center justify-center pt-1">
+            <div className="border-t border-slate-200 w-full" />
+            <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+              Or direct phone OTP
+            </span>
+            <div className="border-t border-slate-200 w-full" />
+          </div>
+
+          {adminLoginError && (
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2.5 text-xs text-red-700 font-semibold">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{adminLoginError}</span>
+            </div>
+          )}
+
+          {adminLoginStep === 'PHONE' ? (
+            <form onSubmit={handleSendAdminOtp} className="space-y-3.5">
               <div>
-                <div className="flex items-center justify-center gap-2 text-purple-950 font-black text-base">
-                  <MessageCircle className="w-5 h-5 text-emerald-600" />
-                  <span>Passwordless WhatsApp Sign In</span>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Admin Mobile Number
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-600">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    placeholder="Enter 10-digit mobile"
+                    value={adminPhone.replace(/^\+91/, '')}
+                    onChange={(e) => setAdminPhone(e.target.value.replace(/\D/g, ''))}
+                    required
+                    className="w-full pl-12 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 focus:border-purple-600 outline-hidden placeholder:font-normal placeholder:text-slate-400 min-h-[44px]"
+                  />
                 </div>
-                <p className="text-xs text-purple-800 leading-relaxed mt-1">
-                  Send <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-purple-300 text-purple-900">LOGIN</span> from your registered administrator WhatsApp number to receive an instant 1-click magic access link.
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAdminLoggingIn || adminPhone.length < 10}
+                className="w-full py-3 px-4 bg-slate-900 hover:bg-black active:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed min-h-[44px]"
+              >
+                {isAdminLoggingIn ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Sending Code...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send SMS Passcode</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyAdminLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 text-center">
+                  Enter 6-Digit Admin Passcode
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="• • • • • •"
+                  value={adminOtp}
+                  onChange={(e) => setAdminOtp(e.target.value.replace(/\D/g, ''))}
+                  required
+                  autoFocus
+                  className="w-full text-center tracking-[0.5em] text-2xl font-black py-3 text-slate-900 bg-white border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 min-h-[48px]"
+                />
+                <p className="text-[11px] text-slate-500 text-center mt-1.5 font-medium">
+                  Sent to +91 {adminPhone.replace(/^\+91/, '')}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => redirectToWhatsAppLogin('LOGIN')}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer"
-              >
-                <MessageCircle className="w-5 h-5" />
-                <span>Sign In via WhatsApp (Admin)</span>
-              </button>
-            </div>
 
-            {/* Divider */}
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-slate-200 w-full" />
-              <div className="bg-white px-3 flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                <span>Or Direct Admin Mobile OTP</span>
-              </div>
-              <div className="border-t border-slate-200 w-full" />
-            </div>
-
-            {adminLoginError && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 text-xs text-red-700">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{adminLoginError}</span>
-              </div>
-            )}
-
-            {adminLoginStep === 'PHONE' ? (
-              <form onSubmit={handleSendAdminOtp} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Admin Mobile Number *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                      +91
-                    </span>
-                    <input
-                      type="tel"
-                      maxLength={10}
-                      placeholder="Enter 10-digit mobile"
-                      value={adminPhone.replace(/^\+91/, '')}
-                      onChange={(e) => setAdminPhone(e.target.value.replace(/\D/g, ''))}
-                      required
-                      className="w-full pl-14 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
-                    />
-                  </div>
-                </div>
-
+              <div className="flex items-center justify-between text-xs pt-1">
                 <button
-                  type="submit"
-                  disabled={isAdminLoggingIn || adminPhone.length < 10}
-                  className="w-full py-3 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  type="button"
+                  onClick={() => setAdminLoginStep('PHONE')}
+                  className="text-slate-500 hover:text-slate-800 font-bold cursor-pointer"
                 >
-                  {isAdminLoggingIn ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending Admin Passcode...
-                    </>
-                  ) : (
-                    'Request Admin Passcode (OTP)'
-                  )}
+                  Change Number
                 </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyAdminLogin} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                    Enter 6-Digit Admin Passcode
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    placeholder="• • • • • •"
-                    value={adminOtp}
-                    onChange={(e) => setAdminOtp(e.target.value.replace(/\D/g, ''))}
-                    required
-                    autoFocus
-                    className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 text-slate-900 bg-white border border-slate-300 rounded-xl font-mono focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
-                  />
-                  <p className="text-[11px] text-slate-500 text-center mt-2">
-                    Passcode dispatched to +91 {adminPhone.replace(/^\+91/, '')}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between text-xs">
+                {adminCooldown > 0 ? (
+                  <span className="text-slate-400 font-medium">Resend in {adminCooldown}s</span>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => setAdminLoginStep('PHONE')}
-                    className="text-slate-500 hover:text-slate-800 font-medium cursor-pointer"
+                    onClick={handleSendAdminOtp}
+                    className="text-purple-700 font-bold hover:underline cursor-pointer"
                   >
-                    Change Number
+                    Resend Passcode
                   </button>
-                  {adminCooldown > 0 ? (
-                    <span className="text-slate-400">Resend in {adminCooldown}s</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleSendAdminOtp}
-                      className="text-purple-700 font-bold hover:underline cursor-pointer"
-                    >
-                      Resend Passcode
-                    </button>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={isAdminLoggingIn || adminOtp.length !== 6}
-                  className="w-full py-3.5 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  {isAdminLoggingIn ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Authenticating Admin...
-                    </>
-                  ) : (
-                    'Verify & Open Operations Center'
-                  )}
-                </button>
-              </form>
-            )}
+              <button
+                type="submit"
+                disabled={isAdminLoggingIn || adminOtp.length !== 6}
+                className="w-full py-3.5 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed min-h-[46px]"
+              >
+                {isAdminLoggingIn ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Verifying Admin...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Verify & Enter Admin Portal</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* Footer Return Link */}
+          <div className="text-center pt-2 border-t border-slate-100">
+            <Link
+              href="/"
+              className="text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors inline-flex items-center gap-1 cursor-pointer"
+            >
+              &larr; Back to Home
+            </Link>
           </div>
         </div>
       </div>
@@ -1103,47 +1144,67 @@ export default function AdminDashboardPage() {
         {/* ================= TAB 5: ADMINISTRATORS MANAGEMENT ================= */}
         {activeTab === 'ADMINS' && (
           <div className="space-y-6">
-            {/* Quick Promote Form */}
+            {/* Quick Add / Direct Provision Admin Form */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
                 <UserPlus className="w-4 h-4 text-purple-700" />
-                Promote User to Administrator
+                Add Platform Administrator
               </h3>
               <p className="text-xs text-slate-500 mb-4">
-                Enter the registered 10-digit mobile number of an existing user to grant them administrative privileges.
+                Grant administrative privileges to an existing user or directly provision a new administrator account.
               </p>
-              <form onSubmit={handlePromoteAdmin} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div className="relative w-full sm:w-80">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
-                    +91
-                  </span>
+              <form onSubmit={handlePromoteAdmin} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div className="sm:col-span-4 space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    Full Name
+                  </label>
                   <input
-                    type="tel"
-                    maxLength={10}
-                    placeholder="Enter 10-digit mobile"
-                    value={promoteMobile}
-                    onChange={(e) => setPromoteMobile(e.target.value.replace(/\D/g, ''))}
-                    required
-                    className="w-full pl-14 pr-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
+                    type="text"
+                    maxLength={100}
+                    placeholder="e.g. Adhithya R"
+                    value={promoteName}
+                    onChange={(e) => setPromoteName(e.target.value)}
+                    className="w-full px-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={isPromoting || promoteMobile.length < 10}
-                  className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
-                >
-                  {isPromoting ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      Promoting...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="w-3.5 h-3.5" />
-                      Promote to Admin
-                    </>
-                  )}
-                </button>
+                <div className="sm:col-span-5 space-y-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                    Mobile Number *
+                  </label>
+                  <div className="relative w-full">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="10-digit mobile"
+                      value={promoteMobile}
+                      onChange={(e) => setPromoteMobile(e.target.value.replace(/\D/g, ''))}
+                      required
+                      className="w-full pl-14 pr-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-3">
+                  <button
+                    type="submit"
+                    disabled={isPromoting || promoteMobile.length < 10}
+                    className="w-full px-5 py-2.5 min-h-[44px] bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isPromoting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-3.5 h-3.5" />
+                        Add Admin
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
             </div>
 
@@ -1194,12 +1255,14 @@ export default function AdminDashboardPage() {
                         return (
                           <tr key={adm.id} className="hover:bg-slate-50/80">
                             <td className="p-3 font-bold text-slate-900">
-                              {adm.name}
-                              {isSelf && (
-                                <span className="ml-2 px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">
-                                  You
-                                </span>
-                              )}
+                              <div className="flex items-center gap-2">
+                                <span>{adm.name}</span>
+                                {isSelf && (
+                                  <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-[10px] font-bold rounded-full">
+                                    You
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="p-3 font-mono text-slate-800 font-bold">
                               +91 {adm.mobile}
@@ -1221,15 +1284,28 @@ export default function AdminDashboardPage() {
                               )}
                             </td>
                             <td className="p-3 text-right">
-                              <button
-                                onClick={() => setDemoteTargetAdmin(adm)}
-                                disabled={adminsList.length <= 1}
-                                title={adminsList.length <= 1 ? "Cannot demote the last remaining administrator" : "Demote to standard role"}
-                                className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
-                              >
-                                <UserMinus className="w-3.5 h-3.5" />
-                                Demote
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditTargetAdmin(adm);
+                                    setEditAdminName(adm.name);
+                                  }}
+                                  title="Edit Administrator Name"
+                                  className="px-2.5 py-1 bg-slate-100 hover:bg-purple-50 text-slate-700 hover:text-purple-700 text-xs font-bold rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                  Edit Name
+                                </button>
+                                <button
+                                  onClick={() => setDemoteTargetAdmin(adm)}
+                                  disabled={adminsList.length <= 1}
+                                  title={adminsList.length <= 1 ? "Cannot demote the last remaining administrator" : "Demote to standard role"}
+                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                  Demote
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1383,6 +1459,73 @@ export default function AdminDashboardPage() {
                   className="px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-xs font-bold rounded-xl cursor-pointer"
                 >
                   {isDemoting ? 'Demoting...' : 'Confirm Demote'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= MODAL: EDIT ADMIN NAME ================= */}
+      {editTargetAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden">
+            <div className="bg-purple-900 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pencil className="w-4 h-4 text-purple-300" />
+                <h3 className="text-sm font-bold">Edit Administrator Name</h3>
+              </div>
+              <button onClick={() => setEditTargetAdmin(null)} className="text-white/80 hover:text-white cursor-pointer">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateAdminName} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Mobile Number</label>
+                <div className="px-3 py-2 bg-slate-100 rounded-xl text-xs font-mono font-bold text-slate-700">
+                  +91 {editTargetAdmin.mobile}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Administrator Name *</label>
+                <input
+                  type="text"
+                  required
+                  maxLength={100}
+                  placeholder="Enter full name"
+                  value={editAdminName}
+                  onChange={(e) => setEditAdminName(e.target.value)}
+                  className="w-full px-3 py-2.5 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-purple-600 outline-hidden font-bold placeholder:text-slate-400"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditTargetAdmin(null)}
+                  className="px-3 py-1.5 text-xs text-slate-600 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingAdminName || !editAdminName.trim()}
+                  className="px-4 py-2 bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5"
+                >
+                  {isUpdatingAdminName ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Save Changes
+                    </>
+                  )}
                 </button>
               </div>
             </form>

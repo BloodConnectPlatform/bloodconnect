@@ -258,7 +258,8 @@ async def test_whatsapp(
         auth_context=auth_context,
         recipient_mobile=request.recipient_mobile,
         template_name=request.template_name or "hello_world",
-        language_code=request.language_code or "en_US"
+        language_code=request.language_code or "en_US",
+        components=request.components
     )
 
 

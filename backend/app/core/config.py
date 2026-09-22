@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     WEBHOOK_VERIFY_SIGNATURE: bool = True
 
     # WhatsApp Templates (Configurable)
-    WHATSAPP_TEMPLATE_LANGUAGE: str = "en_US"
+    WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
     WHATSAPP_TEMPLATE_AUTH_OTP: str = "bloodconnect_auth_otp"
     WHATSAPP_TEMPLATE_BLOOD_REQUEST: str = "bloodconnect_blood_request"
     WHATSAPP_TEMPLATE_REQUEST_ACCEPTED: str = "bloodconnect_request_accepted"

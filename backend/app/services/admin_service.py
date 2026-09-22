@@ -523,30 +523,120 @@ class AdminService:
                 admins=admin_summaries
             )
 
-        # PROMOTE or DEMOTE requires target mobile
+        # PROMOTE, DEMOTE, or UPDATE_NAME requires mutation lock
         mobile = request.mobile
         now = datetime.now(timezone.utc)
 
         async with self._mutation_lock:
+            # 1. UPDATE_NAME Action
+            if request.action == AdminManagementAction.UPDATE_NAME:
+                if request.user_id:
+                    stmt = select(User).where(User.id == request.user_id)
+                else:
+                    stmt = select(User).where(User.mobile == mobile)
+                res = await db.execute(stmt)
+                user = res.scalar_one_or_none()
+                if not user:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Administrator not found."
+                    )
+                if user.role != UserRole.ADMIN:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"User {user.mobile} is not an administrator."
+                    )
+                new_name = request.name.strip() if request.name else ""
+                if not new_name:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Name cannot be empty."
+                    )
+                old_name = user.name
+                user.name = new_name
+                audit = AdminAction(
+                    admin_id=actor_id,
+                    action="UPDATE_ADMIN_NAME",
+                    target_type="user",
+                    target_id=str(user.id),
+                    details={
+                        "mobile": user.mobile,
+                        "old_name": old_name,
+                        "new_name": new_name,
+                        "actor_type": actor_type,
+                    },
+                    created_at=now
+                )
+                db.add(audit)
+                await db.commit()
+                await db.refresh(user)
+
+                return AdminManagementResponse(
+                    success=True,
+                    message=f"Administrator name updated from '{old_name}' to '{new_name}'.",
+                    action=AdminManagementAction.UPDATE_NAME,
+                    user=AdminUserSummary.model_validate(user)
+                )
+
+            # 2. Lookup User for PROMOTE or DEMOTE
             stmt = select(User).where(User.mobile == mobile)
             res = await db.execute(stmt)
             user = res.scalar_one_or_none()
-            if not user:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found."
-                )
 
             if request.action == AdminManagementAction.PROMOTE:
-                if user.role == UserRole.ADMIN:
+                if not user:
+                    # Directly create/provision new user as ADMIN even if not existing as donor/requester
+                    new_name = request.name.strip() if request.name and request.name.strip() else "Administrator"
+                    user = User(
+                        name=new_name,
+                        mobile=mobile,
+                        role=UserRole.ADMIN,
+                        is_active=True,
+                    )
+                    db.add(user)
+                    await db.flush()
+
+                    audit = AdminAction(
+                        admin_id=actor_id,
+                        action="ADD_ADMIN",
+                        target_type="user",
+                        target_id=str(user.id),
+                        details={
+                            "mobile": user.mobile,
+                            "name": user.name,
+                            "actor_type": actor_type,
+                            "provisioned_directly": True,
+                        },
+                        created_at=now
+                    )
+                    db.add(audit)
+                    await db.commit()
+                    await db.refresh(user)
+
                     return AdminManagementResponse(
                         success=True,
-                        message=f"User {user.mobile} is already an administrator.",
+                        message=f"Administrator '{user.name}' (+91 {user.mobile}) added successfully.",
+                        action=AdminManagementAction.PROMOTE,
+                        user=AdminUserSummary.model_validate(user)
+                    )
+
+                # Existing user -> promote and update name if provided
+                if request.name and request.name.strip():
+                    user.name = request.name.strip()
+
+                if user.role == UserRole.ADMIN:
+                    user.is_active = True
+                    await db.commit()
+                    await db.refresh(user)
+                    return AdminManagementResponse(
+                        success=True,
+                        message=f"Administrator '{user.name}' (+91 {user.mobile}) details updated successfully.",
                         action=AdminManagementAction.PROMOTE,
                         user=AdminUserSummary.model_validate(user)
                     )
 
                 user.role = UserRole.ADMIN
+                user.is_active = True
                 audit = AdminAction(
                     admin_id=actor_id,
                     action="PROMOTE",
@@ -566,12 +656,17 @@ class AdminService:
 
                 return AdminManagementResponse(
                     success=True,
-                    message=f"User {user.name} ({user.mobile}) has been successfully promoted to administrator.",
+                    message=f"User '{user.name}' ({user.mobile}) has been successfully promoted to administrator.",
                     action=AdminManagementAction.PROMOTE,
                     user=AdminUserSummary.model_validate(user)
                 )
 
             elif request.action == AdminManagementAction.DEMOTE:
+                if not user:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="User not found."
+                    )
                 if user.role != UserRole.ADMIN:
                     return AdminManagementResponse(
                         success=True,
@@ -613,7 +708,7 @@ class AdminService:
 
                 return AdminManagementResponse(
                     success=True,
-                    message=f"Administrator {user.name} ({user.mobile}) has been demoted to {new_role.value}.",
+                    message=f"Administrator '{user.name}' ({user.mobile}) demoted to {new_role.value.lower()}.",
                     action=AdminManagementAction.DEMOTE,
                     user=AdminUserSummary.model_validate(user)
                 )
@@ -629,7 +724,8 @@ class AdminService:
         auth_context: AdminAuthContext,
         recipient_mobile: str,
         template_name: str = "hello_world",
-        language_code: str = "en_US"
+        language_code: str = "en_US",
+        components: Optional[List[Dict[str, Any]]] = None
     ) -> AdminWhatsAppTestResponse:
         """Send a diagnostic test template message via WhatsApp Meta Cloud API without exposing credentials."""
         from app.core.config import settings
@@ -640,6 +736,63 @@ class AdminService:
 
         is_token_set = bool(settings.META_WA_ACCESS_TOKEN and settings.META_WA_ACCESS_TOKEN.strip())
         is_phone_set = bool(settings.META_WA_PHONE_NUMBER_ID and settings.META_WA_PHONE_NUMBER_ID.strip())
+
+        # Auto-populate components for known BloodConnect templates if not explicitly passed
+        if components is None:
+            if template_name in [settings.WHATSAPP_TEMPLATE_BLOOD_REQUEST, "bloodconnect_blood_request"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "O+"},
+                            {"type": "text", "text": "Coimbatore"},
+                            {"type": "text", "text": "KG Hospital"},
+                            {"type": "text", "text": "Emergency Patient"}
+                        ]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "quick_reply",
+                        "index": "0",
+                        "parameters": [{"type": "payload", "payload": f"ACCEPT:test-{uuid.uuid4().hex[:8]}"}]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "quick_reply",
+                        "index": "1",
+                        "parameters": [{"type": "payload", "payload": f"REJECT:test-{uuid.uuid4().hex[:8]}"}]
+                    }
+                ]
+            elif template_name in [settings.WHATSAPP_TEMPLATE_AUTH_OTP, "bloodconnect_auth_otp"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "123456"}
+                        ]
+                    }
+                ]
+            elif template_name in [settings.WHATSAPP_TEMPLATE_REQUEST_ACCEPTED, "bloodconnect_request_accepted"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "Arun Kumar"},
+                            {"type": "text", "text": "O+"},
+                            {"type": "text", "text": "+91 9876543201"}
+                        ]
+                    }
+                ]
+            elif template_name in [settings.WHATSAPP_TEMPLATE_REQUEST_REJECTED, "bloodconnect_request_rejected"]:
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": "Rahul Sharma"},
+                            {"type": "text", "text": "A+"}
+                        ]
+                    }
+                ]
 
         # In test mode or when NOTIFICATION_PROVIDER is explicitly 'mock', use get_whatsapp_provider()
         if settings.is_testing or settings.NOTIFICATION_PROVIDER == "mock":
@@ -652,8 +805,18 @@ class AdminService:
         result = await provider.send_template(
             to_mobile=recipient_mobile,
             template_name=template_name,
-            language_code=language_code
+            language_code=language_code,
+            components=components
         )
+        if not result.success and components and len(components) > 1 and result.error_message and ("components" in result.error_message.lower() or "button" in result.error_message.lower()):
+            retry_res = await provider.send_template(
+                to_mobile=recipient_mobile,
+                template_name=template_name,
+                language_code=language_code,
+                components=[components[0]]
+            )
+            if retry_res.success:
+                result = retry_res
 
         # Audit log the diagnostic test attempt
         now = datetime.now(timezone.utc)

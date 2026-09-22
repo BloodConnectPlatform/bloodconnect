@@ -431,11 +431,16 @@ class ApiClient {
     return this.request<PaginatedResponse<any>>(`/admin/audit-logs?page=${page}&page_size=${page_size}`);
   }
 
-  async manageAdmins(data: { action: 'PROMOTE' | 'DEMOTE' | 'LIST'; mobile?: string }) {
+  async manageAdmins(data: {
+    action: 'PROMOTE' | 'DEMOTE' | 'UPDATE_NAME' | 'LIST';
+    mobile?: string;
+    name?: string;
+    user_id?: string;
+  }) {
     return this.request<{
       success: boolean;
       message: string;
-      action: 'PROMOTE' | 'DEMOTE' | 'LIST';
+      action: 'PROMOTE' | 'DEMOTE' | 'UPDATE_NAME' | 'LIST';
       user?: {
         id: string;
         name: string;

@@ -83,12 +83,71 @@ async def run_diagnostic(recipient: str, template: str, language: str):
 
     # 4. Dispatch Test via Meta Provider
     print(f"\n[*] DISPATCHING TEMPLATE MESSAGE...")
+    components = None
+    if template in [settings.WHATSAPP_TEMPLATE_BLOOD_REQUEST, "bloodconnect_blood_request"]:
+        components = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "O+"},
+                    {"type": "text", "text": "Coimbatore"},
+                    {"type": "text", "text": "KG Hospital"},
+                    {"type": "text", "text": "Emergency Patient"}
+                ]
+            },
+            {
+                "type": "button",
+                "sub_type": "quick_reply",
+                "index": "0",
+                "parameters": [{"type": "payload", "payload": "ACCEPT:test"}]
+            },
+            {
+                "type": "button",
+                "sub_type": "quick_reply",
+                "index": "1",
+                "parameters": [{"type": "payload", "payload": "REJECT:test"}]
+            }
+        ]
+    elif template in [settings.WHATSAPP_TEMPLATE_AUTH_OTP, "bloodconnect_auth_otp"]:
+        components = [{"type": "body", "parameters": [{"type": "text", "text": "123456"}]}]
+    elif template in [settings.WHATSAPP_TEMPLATE_REQUEST_ACCEPTED, "bloodconnect_request_accepted"]:
+        components = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "Arun Kumar"},
+                    {"type": "text", "text": "O+"},
+                    {"type": "text", "text": "+91 9876543201"}
+                ]
+            }
+        ]
+    elif template in [settings.WHATSAPP_TEMPLATE_REQUEST_REJECTED, "bloodconnect_request_rejected"]:
+        components = [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "Rahul Sharma"},
+                    {"type": "text", "text": "A+"}
+                ]
+            }
+        ]
+
     provider = MetaWhatsAppProvider()
     result = await provider.send_template(
         to_mobile=recipient,
         template_name=template,
-        language_code=language
+        language_code=language,
+        components=components
     )
+    if not result.success and components and len(components) > 1 and result.error_message and ("components" in result.error_message.lower() or "button" in result.error_message.lower()):
+        retry_res = await provider.send_template(
+            to_mobile=recipient,
+            template_name=template,
+            language_code=language,
+            components=[components[0]]
+        )
+        if retry_res.success:
+            result = retry_res
 
     print("\n" + "=" * 70)
     print("  RESULT SUMMARY")
@@ -121,8 +180,8 @@ def main():
     )
     parser.add_argument(
         "--lang",
-        default="en_US",
-        help="Template language code (default: en_US)"
+        default=settings.WHATSAPP_TEMPLATE_LANGUAGE or "en",
+        help="Template language code (default: from settings or en)"
     )
 
     args = parser.parse_args()

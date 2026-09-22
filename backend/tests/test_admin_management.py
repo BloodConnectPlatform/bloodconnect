@@ -210,15 +210,56 @@ async def test_promote_user_with_bootstrap_secret(client: AsyncClient, admin_mgm
 
 
 @pytest.mark.asyncio
-async def test_promote_nonexistent_user_returns_404(client: AsyncClient, admin_mgmt_fixture):
-    """Test promoting a nonexistent phone number returns 404."""
+async def test_promote_nonexistent_user_provisions_new_admin(client: AsyncClient, admin_mgmt_fixture, db_session: AsyncSession):
+    """Test adding a non-existent mobile number directly provisions a new active ADMIN user."""
     fixture = admin_mgmt_fixture
     headers = {"Authorization": f"Bearer {fixture['admin1_token']}"}
 
-    payload = {"action": "PROMOTE", "mobile": "9999999999"}
+    payload = {"action": "PROMOTE", "mobile": "9999999999", "name": "Direct Admin"}
     response = await client.post("/api/v1/admin/manage-admins", headers=headers, json=payload)
-    assert response.status_code == 404
-    assert "User not found" in response.json()["detail"]
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["user"]["mobile"] == "9999999999"
+    assert data["user"]["name"] == "Direct Admin"
+    assert data["user"]["role"] == "ADMIN"
+    assert data["user"]["is_active"] is True
+
+    # Verify user exists in DB
+    db_user = (await db_session.execute(select(User).where(User.mobile == "9999999999"))).scalar_one_or_none()
+    assert db_user is not None
+    assert db_user.role == UserRole.ADMIN
+    assert db_user.name == "Direct Admin"
+
+
+@pytest.mark.asyncio
+async def test_update_admin_name(client: AsyncClient, admin_mgmt_fixture, db_session: AsyncSession):
+    """Test updating an administrator's display name."""
+    fixture = admin_mgmt_fixture
+    headers = {"Authorization": f"Bearer {fixture['admin1_token']}"}
+
+    payload = {"action": "UPDATE_NAME", "mobile": fixture["admin2_user"].mobile, "name": "Super Admin Two"}
+    response = await client.post("/api/v1/admin/manage-admins", headers=headers, json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["action"] == "UPDATE_NAME"
+    assert data["user"]["name"] == "Super Admin Two"
+
+    # Verify in database
+    db_user = (await db_session.execute(select(User).where(User.mobile == fixture["admin2_user"].mobile))).scalar_one()
+    assert db_user.name == "Super Admin Two"
+
+
+@pytest.mark.asyncio
+async def test_update_admin_name_empty_fails(client: AsyncClient, admin_mgmt_fixture):
+    """Test updating admin name with empty string fails validation."""
+    fixture = admin_mgmt_fixture
+    headers = {"Authorization": f"Bearer {fixture['admin1_token']}"}
+
+    payload = {"action": "UPDATE_NAME", "mobile": fixture["admin2_user"].mobile, "name": "   "}
+    response = await client.post("/api/v1/admin/manage-admins", headers=headers, json=payload)
+    assert response.status_code in (400, 422)
 
 
 @pytest.mark.asyncio
@@ -232,7 +273,7 @@ async def test_promote_already_admin_is_idempotent(client: AsyncClient, admin_mg
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert "already an administrator" in data["message"]
+    assert "details updated successfully" in data["message"] or "already an administrator" in data["message"]
 
 
 # ============================================================================

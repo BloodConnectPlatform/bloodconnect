@@ -432,6 +432,64 @@ class NotificationService:
 
         async def _wa_send(provider: BaseWhatsAppProvider) -> ProviderSendResult:
             req_id_str = str(request_id) if request_id else "unknown"
+            template_name = settings.WHATSAPP_TEMPLATE_BLOOD_REQUEST
+
+            if template_name and template_name.lower() == "hello_world":
+                return await provider.send_template(
+                    to_mobile=donor_mobile,
+                    template_name="hello_world",
+                    language_code="en_US",
+                    components=[]
+                )
+            elif template_name and template_name != "none" and isinstance(provider, MetaWhatsAppProvider):
+                # Template: Urgent requirement: A patient requires {{1}} blood in {{2}} at {{3}} for patient {{4}}...
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": blood_group},
+                            {"type": "text", "text": location_name},
+                            {"type": "text", "text": hospital_name or "Hospital / Clinic"},
+                            {"type": "text", "text": patient_name or "Emergency Patient"}
+                        ]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "quick_reply",
+                        "index": "0",
+                        "parameters": [
+                            {"type": "payload", "payload": f"ACCEPT:{req_id_str}"}
+                        ]
+                    },
+                    {
+                        "type": "button",
+                        "sub_type": "quick_reply",
+                        "index": "1",
+                        "parameters": [
+                            {"type": "payload", "payload": f"REJECT:{req_id_str}"}
+                        ]
+                    }
+                ]
+                lang_code = settings.WHATSAPP_TEMPLATE_LANGUAGE or "en_US"
+                res = await provider.send_template(
+                    to_mobile=donor_mobile,
+                    template_name=template_name,
+                    language_code=lang_code,
+                    components=components
+                )
+                # If Meta returns error due to button configuration mismatch, retry with body only
+                if not res.success and res.error_message and ("components" in res.error_message.lower() or "button" in res.error_message.lower()):
+                    body_only_components = [components[0]]
+                    retry_res = await provider.send_template(
+                        to_mobile=donor_mobile,
+                        template_name=template_name,
+                        language_code=lang_code,
+                        components=body_only_components
+                    )
+                    if retry_res.success:
+                        return retry_res
+                return res
+
             buttons = [
                 {
                     "type": "reply",

@@ -11,6 +11,7 @@ from app.schemas.donor import LocationResponse
 class AdminManagementAction(str, Enum):
     PROMOTE = "PROMOTE"
     DEMOTE = "DEMOTE"
+    UPDATE_NAME = "UPDATE_NAME"
     LIST = "LIST"
 
 
@@ -26,8 +27,10 @@ class AdminUserSummary(BaseModel):
 
 
 class AdminManagementRequest(BaseModel):
-    action: AdminManagementAction = Field(..., description="Action to perform: PROMOTE, DEMOTE, or LIST")
-    mobile: Optional[str] = Field(None, description="10-digit Indian mobile number for PROMOTE or DEMOTE")
+    action: AdminManagementAction = Field(..., description="Action to perform: PROMOTE, DEMOTE, UPDATE_NAME, or LIST")
+    mobile: Optional[str] = Field(None, description="10-digit Indian mobile number for PROMOTE, DEMOTE, or UPDATE_NAME")
+    name: Optional[str] = Field(None, max_length=100, description="Full name for administrator (for PROMOTE / ADD or UPDATE_NAME)")
+    user_id: Optional[uuid.UUID] = Field(None, description="User UUID (optional alternative to mobile for UPDATE_NAME)")
 
     @field_validator("mobile")
     @classmethod
@@ -41,6 +44,11 @@ class AdminManagementRequest(BaseModel):
         if self.action in (AdminManagementAction.PROMOTE, AdminManagementAction.DEMOTE):
             if not self.mobile:
                 raise ValueError(f"Field 'mobile' is required when action is '{self.action.value}'.")
+        elif self.action == AdminManagementAction.UPDATE_NAME:
+            if not self.mobile and not self.user_id:
+                raise ValueError("Either 'mobile' or 'user_id' is required when action is 'UPDATE_NAME'.")
+            if not self.name or not self.name.strip():
+                raise ValueError("Field 'name' is required when action is 'UPDATE_NAME'.")
         return self
 
 
@@ -120,6 +128,7 @@ class AdminWhatsAppTestRequest(BaseModel):
     recipient_mobile: str = Field(..., description="10-digit Indian recipient mobile number (e.g. 9876543210)")
     template_name: Optional[str] = Field("hello_world", description="Meta pre-approved template name (default: hello_world)")
     language_code: Optional[str] = Field("en_US", description="Template language code (e.g., en_US or en)")
+    components: Optional[List[Dict[str, Any]]] = Field(None, description="Optional template components (body parameters, buttons)")
 
     @field_validator("recipient_mobile")
     @classmethod
