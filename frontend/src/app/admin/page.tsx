@@ -23,6 +23,10 @@ import {
   UserPlus,
   UserMinus,
   ShieldCheck,
+  MessageCircle,
+  LogOut,
+  ArrowRight,
+  Shield,
 } from 'lucide-react';
 import {
   AdminStats,
@@ -35,12 +39,13 @@ import {
 } from '@/types';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { redirectToWhatsAppLogin } from '@/lib/whatsapp';
 
 const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading, login, openLoginModal } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, login, logout, openLoginModal } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'DONORS' | 'REQUESTS' | 'REPORTS' | 'AUDIT' | 'ADMINS'>('DONORS');
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -243,7 +248,12 @@ export default function AdminDashboardPage() {
         setAdminOtp(res.debug_otp);
       }
     } catch (err: any) {
-      setAdminLoginError(err.message || 'Failed to send OTP.');
+      const msg = err.message || 'Failed to send OTP.';
+      if (msg.toLowerCase().includes('not found')) {
+        setAdminLoginError('Administrator account not found for this mobile number. Please ensure this number is registered in INITIAL_ADMIN_PHONE_NUMBERS or signed up.');
+      } else {
+        setAdminLoginError(msg);
+      }
     } finally {
       setIsAdminLoggingIn(false);
     }
@@ -263,10 +273,15 @@ export default function AdminDashboardPage() {
       const formatted = normalizePhone(adminPhone);
       const loggedUser = await login(formatted, adminOtp.trim());
       if (loggedUser.role !== 'ADMIN') {
-        setAdminLoginError(`Account signed in with role '${loggedUser.role}'. Administrator privileges required.`);
+        setAdminLoginError(`Account signed in with role '${loggedUser.role}'. Administrator privileges are required.`);
       }
     } catch (err: any) {
-      setAdminLoginError(err.message || 'Invalid or expired OTP code.');
+      const msg = err.message || 'Invalid or expired OTP code.';
+      if (msg.toLowerCase().includes('not found')) {
+        setAdminLoginError('Account not found for this mobile number. Please check your credentials.');
+      } else {
+        setAdminLoginError(msg);
+      }
     } finally {
       setIsAdminLoggingIn(false);
     }
@@ -353,7 +368,78 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!isAuthenticated || user?.role !== 'ADMIN') {
+  // Case 1: Authenticated, but role is not ADMIN (e.g. Donor / Requester)
+  if (isAuthenticated && user?.role !== 'ADMIN') {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden text-center">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-600 to-rose-700 p-8 text-white relative">
+            <div className="w-14 h-14 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-3 backdrop-blur-xs">
+              <ShieldAlert className="w-7 h-7 text-white" />
+            </div>
+            <h2 className="text-2xl font-black">Access Restricted</h2>
+            <p className="text-xs text-amber-100 mt-1">
+              Administrator privileges required
+            </p>
+          </div>
+
+          {/* Body */}
+          <div className="p-8 space-y-6">
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left space-y-2">
+              <div className="text-xs text-slate-500 font-medium">Currently signed in as:</div>
+              <div className="text-sm font-bold text-slate-900 flex items-center justify-between">
+                <span>{user?.name || user?.mobile}</span>
+                <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-slate-200 text-slate-700 uppercase">
+                  {user?.role}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">
+                This Operations Center is restricted to designated BloodConnect administrators.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span>Switch to Admin via WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await logout();
+                  router.push('/login');
+                }}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out Current Account</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (user?.role === 'DONOR') router.push('/donor/dashboard');
+                  else router.push('/requester/dashboard');
+                }}
+                className="block w-full text-center text-xs font-semibold text-slate-500 hover:text-slate-800 py-1"
+              >
+                Return to My Dashboard &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Case 2: Not Authenticated
+  if (!isAuthenticated) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6">
         <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
@@ -370,20 +456,44 @@ export default function AdminDashboardPage() {
 
           {/* Body */}
           <div className="p-8 space-y-6">
-            {/* Admin Login Notice */}
-            <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-2xl text-xs text-purple-900 space-y-1">
-              <div className="font-bold flex items-center justify-between">
-                <span>Admin Authentication:</span>
+            {/* Primary: WhatsApp Fast Magic Login */}
+            <div className="bg-purple-50/90 border-2 border-purple-300 rounded-2xl p-5 text-center space-y-3 shadow-xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-black uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Instant Access</span>
               </div>
-              <p className="text-[11px] text-purple-700">
-                Enter your provisioned administrator mobile number to receive a secure login OTP passcode.
-              </p>
+              <div>
+                <div className="flex items-center justify-center gap-2 text-purple-950 font-black text-base">
+                  <MessageCircle className="w-5 h-5 text-emerald-600" />
+                  <span>Passwordless WhatsApp Sign In</span>
+                </div>
+                <p className="text-xs text-purple-800 leading-relaxed mt-1">
+                  Send <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-purple-300 text-purple-900">LOGIN</span> from your registered administrator WhatsApp number to receive an instant 1-click magic access link.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span>Sign In via WhatsApp (Admin)</span>
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative flex items-center justify-center">
+              <div className="border-t border-slate-200 w-full" />
+              <div className="bg-white px-3 flex items-center gap-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <span>Or Direct Admin Mobile OTP</span>
+              </div>
+              <div className="border-t border-slate-200 w-full" />
             </div>
 
             {adminLoginError && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-700">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span>{adminLoginError}</span>
+              <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 text-xs text-red-700">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{adminLoginError}</span>
               </div>
             )}
 
@@ -404,7 +514,6 @@ export default function AdminDashboardPage() {
                       value={adminPhone.replace(/^\+91/, '')}
                       onChange={(e) => setAdminPhone(e.target.value.replace(/\D/g, ''))}
                       required
-                      autoFocus
                       className="w-full pl-14 pr-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400"
                     />
                   </div>
@@ -413,15 +522,15 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={isAdminLoggingIn || adminPhone.length < 10}
-                  className="w-full py-3.5 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 bg-purple-700 hover:bg-purple-800 active:bg-purple-900 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {isAdminLoggingIn ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Sending Admin OTP...
+                      Sending Admin Passcode...
                     </>
                   ) : (
-                    'Request Admin Passcode'
+                    'Request Admin Passcode (OTP)'
                   )}
                 </button>
               </form>
