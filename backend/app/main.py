@@ -80,6 +80,38 @@ app.add_api_route(
     include_in_schema=True
 )
 
+# Top-level legal route aliases
+from app.api.v1.legal import get_privacy_policy, get_terms_of_service
+app.add_api_route(
+    "/privacy-policy",
+    get_privacy_policy,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/privarcy-policy",
+    get_privacy_policy,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+app.add_api_route(
+    "/terms",
+    get_terms_of_service,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=True
+)
+app.add_api_route(
+    "/terms-of-service",
+    get_terms_of_service,
+    methods=["GET", "HEAD"],
+    tags=["Legal & Compliance"],
+    include_in_schema=False
+)
+
+
 
 @app.api_route("/", methods=["GET", "HEAD"], tags=["Root"])
 async def root():

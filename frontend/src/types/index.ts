@@ -178,3 +178,18 @@ export interface PublicStats {
   total_locations: number;
 }
 
+export interface LegalSection {
+  title: string;
+  content: string;
+  points?: string[];
+}
+
+export interface LegalDocument {
+  title: string;
+  last_updated: string;
+  platform_name: string;
+  summary: string;
+  sections: LegalSection[];
+}
+
+

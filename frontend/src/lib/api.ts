@@ -9,6 +9,7 @@ import {
   PaginatedResponse,
   PublicDonor,
   PublicStats,
+  LegalDocument,
   ReportItem,
   ReportReason,
   ReportStatus,
@@ -256,6 +257,15 @@ class ApiClient {
 
   async getPublicStats() {
     return this.request<PublicStats>('/donors/public-stats');
+  }
+
+  // ===================== LEGAL & COMPLIANCE =====================
+  async getPrivacyPolicy() {
+    return this.request<LegalDocument>('/privacy-policy');
+  }
+
+  async getTerms() {
+    return this.request<LegalDocument>('/terms');
   }
 
   // ===================== BLOOD REQUESTS =====================
