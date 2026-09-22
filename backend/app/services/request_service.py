@@ -440,12 +440,13 @@ class RequestService:
             user_id=req.requester_id,
             type=NotificationType.REQUEST_REJECTED,
             title="Blood Request Declined",
-            message=f"The donor was unable to accept your {req.blood_group.value} blood request at this time."
+            message=f"Donor {donor_user.name} was unable to accept your {req.blood_group.value} blood request at this time."
         )
         try:
             await notification_service.send_request_rejected(
                 requester_mobile=req.requester.mobile,
                 blood_group=req.blood_group.value,
+                donor_name=donor_user.name,
                 request_id=req.id,
                 user_id=req.requester_id,
                 db=db

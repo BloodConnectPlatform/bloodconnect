@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -18,6 +18,7 @@ import {
   ArrowRight,
   ArrowLeft,
   MessageCircle,
+  Sparkles,
 } from 'lucide-react';
 import { BloodGroup, Gender, LocationItem } from '@/types';
 import { api } from '@/lib/api';
@@ -84,7 +85,6 @@ function DonorRegistrationContent() {
     });
   }, []);
 
-
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (cooldown > 0) {
@@ -100,6 +100,22 @@ function DonorRegistrationContent() {
     if (num.startsWith('+91') && cleaned.length === 12) return num;
     return `+91${cleaned}`;
   };
+
+  // Calculate age from DOB
+  const calculatedAge = useMemo(() => {
+    try {
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
+      return isNaN(age) ? null : age;
+    } catch {
+      return null;
+    }
+  }, [dateOfBirth]);
 
   // Step 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -158,31 +174,17 @@ function DonorRegistrationContent() {
     setError(null);
 
     if (!fullName.trim()) {
-      setError('Please enter your full name.');
+      setError('Please enter your full legal name.');
       return;
     }
 
-    // Validate Age >= 18
-    const dob = new Date(dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
-
-    if (age < 18) {
-      setError('You must be at least 18 years of age to register as a voluntary blood donor.');
-      return;
-    }
-
-    if (age > 65) {
-      setError('Blood donors must be between 18 and 65 years of age.');
+    if (calculatedAge !== null && (calculatedAge < 18 || calculatedAge > 65)) {
+      setError('Voluntary blood donors must be between 18 and 65 years of age.');
       return;
     }
 
     if (!locationId) {
-      setError('Please select your location / area.');
+      setError('Please select your primary location / area.');
       return;
     }
 
@@ -215,12 +217,14 @@ function DonorRegistrationContent() {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 py-12">
+    <div className="flex-1 bg-slate-50 py-8 sm:py-12">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
+        
         {/* Wizard Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-6 md:p-8 text-white relative">
+          
+          {/* Header Banner */}
+          <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-6 sm:p-8 text-white relative">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white backdrop-blur-xs p-1 border border-white/20 shadow-xs">
                 <Image
@@ -231,13 +235,16 @@ function DonorRegistrationContent() {
                   className="object-contain"
                 />
               </div>
-              <span className="text-xs font-bold uppercase tracking-widest text-rose-200">
-                Join the Network
+              <span className="text-xs font-black uppercase tracking-widest text-rose-200">
+                Join the Lifesaver Network
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black">Register as Voluntary Blood Donor</h1>
-            <p className="text-xs sm:text-sm text-rose-100 mt-1">
-              Your donation can save someone's life in an emergency. Free, secure, and privacy-protected.
+            
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              Register as Voluntary Donor
+            </h1>
+            <p className="text-xs sm:text-sm text-rose-100 mt-1 font-medium leading-relaxed">
+              Your single donation can save up to 3 lives. Free, confidential, and safe.
             </p>
 
             {/* Step Indicator Bar */}
@@ -262,107 +269,100 @@ function DonorRegistrationContent() {
           </div>
 
           {/* Body */}
-          <div className="p-6 md:p-8">
+          <div className="p-6 sm:p-8">
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-700">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-xs text-red-700 font-semibold">
+                <AlertCircle className="w-5 h-5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            {/* STEP 1: REGISTRATION METHOD SELECTION */}
+            {/* STEP 1: MOBILE INPUT & VERIFICATION */}
             {step === 1 && (
               <div className="space-y-6">
-                {/* Primary WhatsApp Registration Card */}
-                <div className="p-6 bg-emerald-50/90 border-2 border-emerald-300 rounded-3xl space-y-4 shadow-xs">
+                {/* PRIMARY: WhatsApp 1-Click Verification */}
+                <div className="p-5 sm:p-6 bg-emerald-50/90 border-2 border-emerald-300 rounded-2xl space-y-3.5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black uppercase tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>Instant 1-Click Verification</span>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>Fastest • Recommended</span>
                     </div>
-                    <span className="text-[11px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
-                      Active
-                    </span>
+                    <span className="text-xs font-bold text-emerald-700">1-Tap Verification</span>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-black text-emerald-950 flex items-center gap-2">
-                      <MessageCircle className="w-5 h-5 text-emerald-600" />
-                      <span>Register via WhatsApp</span>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                      <MessageCircle className="w-5 h-5 text-emerald-600 fill-emerald-600/20" />
+                      <span>Register Instantly with WhatsApp</span>
                     </h3>
-                    <p className="text-xs text-emerald-800 leading-relaxed mt-1.5">
-                      Fastest and most reliable registration! Tap the button below to send <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">REGISTER</span> to our official WhatsApp account. You will immediately receive a 1-click link to complete your donor profile in 30 seconds without waiting for SMS OTPs.
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+                      Tap below to send <span className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-emerald-300 text-emerald-900">REGISTER</span> on WhatsApp and verify your phone number instantly with zero SMS delivery delays.
                     </p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => redirectToWhatsAppLogin('REGISTER')}
-                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2.5 cursor-pointer"
+                    className="w-full py-4 px-6 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-black text-sm sm:text-base rounded-2xl shadow-md hover:shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer min-h-[48px]"
                   >
-                    <MessageCircle className="w-5 h-5" />
-                    <span>Open WhatsApp &amp; Send REGISTER</span>
+                    <MessageCircle className="w-5 h-5 fill-white" />
+                    <span>VERIFY & SIGN UP VIA WHATSAPP</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
-
-                  <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between text-xs text-emerald-800">
-                    <span>Already have a Blood Connect account?</span>
-                    <button
-                      type="button"
-                      onClick={() => redirectToWhatsAppLogin('LOGIN')}
-                      className="font-bold underline hover:text-emerald-950 cursor-pointer"
-                    >
-                      Sign In via WhatsApp
-                    </button>
-                  </div>
                 </div>
 
-                {/* SMS OTP Registration - Disabled & Marked Coming Soon */}
-                <div className="pt-2">
-                  <div className="relative flex items-center justify-center mb-4">
-                    <div className="border-t border-slate-200 w-full" />
-                    <div className="bg-white px-3 flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        SMS OTP Registration
+                {/* Divider */}
+                <div className="relative flex items-center justify-center pt-1">
+                  <div className="border-t border-slate-200 w-full" />
+                  <span className="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                    Or verify with SMS OTP
+                  </span>
+                  <div className="border-t border-slate-200 w-full" />
+                </div>
+
+                {/* SECONDARY: SMS OTP Form */}
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                      Enter Mobile Number *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-600">
+                        +91
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                        Coming Soon
-                      </span>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        placeholder="Enter 10-digit mobile number"
+                        value={mobileNumber.replace(/^\+91/, '')}
+                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+                        required
+                        className="w-full pl-14 pr-4 py-3.5 text-base text-slate-900 bg-white border border-slate-300 rounded-2xl font-bold focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-hidden placeholder:font-normal placeholder:text-slate-400 min-h-[48px]"
+                      />
                     </div>
-                    <div className="border-t border-slate-200 w-full" />
-                  </div>
-
-                  <div className="p-5 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-4 opacity-60">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                        Mobile Number
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
-                          +91
-                        </span>
-                        <input
-                          type="tel"
-                          disabled
-                          placeholder="9876543210"
-                          value=""
-                          className="w-full pl-14 pr-4 py-3 text-sm border border-slate-200 rounded-xl font-bold text-slate-500 bg-slate-100 cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled
-                      className="w-full py-3.5 bg-slate-200 text-slate-400 font-bold text-xs rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      <span>SMS OTP Registration Unavailable (Coming Soon)</span>
-                    </button>
-
-                    <p className="text-[11px] text-slate-500 text-center leading-snug">
-                      Direct SMS OTP registration is undergoing maintenance. Please tap the WhatsApp button above to register instantly.
+                    <p className="text-[11px] text-slate-500 mt-1.5">
+                      We'll send a 6-digit SMS verification code to verify your phone number.
                     </p>
                   </div>
-                </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || mobileNumber.length < 10}
+                    className="w-full py-3.5 px-4 bg-slate-900 hover:bg-black active:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm rounded-2xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed min-h-[48px]"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Sending SMS Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue with SMS OTP</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
             )}
 
@@ -377,7 +377,7 @@ function DonorRegistrationContent() {
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="text-xs font-bold text-red-600 hover:underline"
+                      className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
                     >
                       Change Number
                     </button>
@@ -391,7 +391,7 @@ function DonorRegistrationContent() {
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                     required
                     autoFocus
-                    className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3.5 border border-slate-300 rounded-2xl font-mono text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
+                    className="w-full text-center tracking-[0.5em] text-2xl font-black py-4 border border-slate-300 rounded-2xl font-mono text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden min-h-[50px]"
                   />
                   <p className="text-xs text-slate-500 mt-2 text-center">
                     Enter the code sent to <strong>{mobileNumber}</strong>
@@ -400,12 +400,12 @@ function DonorRegistrationContent() {
 
                 <div className="flex items-center justify-between text-xs">
                   {cooldown > 0 ? (
-                    <span className="text-slate-400">Resend code in {cooldown}s</span>
+                    <span className="text-slate-400 font-medium">Resend code in {cooldown}s</span>
                   ) : (
                     <button
                       type="button"
                       onClick={handleSendOtp}
-                      className="text-red-600 font-bold hover:underline"
+                      className="text-red-600 font-bold hover:underline cursor-pointer"
                     >
                       Resend OTP Code
                     </button>
@@ -416,7 +416,7 @@ function DonorRegistrationContent() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="py-3.5 px-5 border border-slate-300 text-slate-700 font-bold text-sm rounded-2xl hover:bg-slate-50"
+                    className="py-3.5 px-5 border border-slate-300 text-slate-700 font-bold text-sm rounded-2xl hover:bg-slate-50 cursor-pointer min-h-[46px]"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -424,16 +424,16 @@ function DonorRegistrationContent() {
                   <button
                     type="submit"
                     disabled={isLoading || otpCode.length !== 6}
-                    className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-300 text-white font-bold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[46px]"
                   >
                     {isLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Verifying...
+                        <span>Verifying...</span>
                       </>
                     ) : (
                       <>
-                        <span>Verify Phone</span>
+                        <span>Verify & Continue</span>
                         <ArrowRight className="w-4 h-4" />
                       </>
                     )}
@@ -442,7 +442,7 @@ function DonorRegistrationContent() {
               </form>
             )}
 
-            {/* STEP 3: DONOR PROFILE DETAILS */}
+            {/* STEP 3: COMPLETE PROFILE */}
             {step === 3 && (
               <form onSubmit={handleCompleteProfile} className="space-y-6">
                 {isPreverified && (
@@ -450,10 +450,10 @@ function DonorRegistrationContent() {
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                     <div className="text-xs">
                       <div className="font-bold text-emerald-950 text-sm">
-                        WhatsApp Number Verified ({mobileNumber})
+                        Verified Mobile: {mobileNumber}
                       </div>
                       <p className="text-emerald-700 mt-0.5">
-                        Your phone number was verified via WhatsApp. Complete your profile below to start saving lives!
+                        Complete your details below to become active on the network.
                       </p>
                     </div>
                   </div>
@@ -470,57 +470,81 @@ function DonorRegistrationContent() {
                     placeholder="e.g. S. Karthik"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-red-500 outline-hidden"
+                    className="w-full px-4 py-3 text-sm text-slate-900 bg-white border border-slate-300 rounded-xl font-medium placeholder:text-slate-400 focus:ring-2 focus:ring-red-500 outline-hidden min-h-[44px]"
                   />
                 </div>
 
-                {/* Blood Group & Gender */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Blood Group *
-                    </label>
-                    <select
-                      value={bloodGroup}
-                      onChange={(e) => setBloodGroup(e.target.value as BloodGroup)}
-                      className="w-full px-4 py-3 text-sm font-bold text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
-                    >
-                      {BLOOD_GROUPS.map((bg) => (
-                        <option key={bg} value={bg}>
-                          {bg}
-                        </option>
-                      ))}
-                    </select>
+                {/* Blood Group Tactile Picker */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Select Your Blood Group *
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {BLOOD_GROUPS.map((bg) => (
+                      <button
+                        key={bg}
+                        type="button"
+                        onClick={() => setBloodGroup(bg)}
+                        className={`py-2.5 px-2 rounded-xl font-black text-sm transition-all border text-center cursor-pointer min-h-[44px] ${
+                          bloodGroup === bg
+                            ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-500/25 scale-[1.02]'
+                            : 'bg-slate-50 hover:bg-red-50 text-slate-800 border-slate-200 hover:border-red-200'
+                        }`}
+                      >
+                        {bg}
+                      </button>
+                    ))}
                   </div>
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Gender *
-                    </label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value as Gender)}
-                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
-                    >
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="OTHER">Other</option>
-                    </select>
+                {/* Gender Pills */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                    Gender *
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['MALE', 'FEMALE', 'OTHER'] as Gender[]).map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setGender(g)}
+                        className={`py-2.5 px-3 rounded-xl font-bold text-xs capitalize transition-all border text-center cursor-pointer min-h-[44px] ${
+                          gender === g
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                            : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        {g.toLowerCase()}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 {/* Date of Birth & Location */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                      Date of Birth (Age &ge; 18) *
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Date of Birth *
+                      </label>
+                      {calculatedAge !== null && (
+                        <span
+                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            calculatedAge >= 18 && calculatedAge <= 65
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          Age: {calculatedAge} {calculatedAge >= 18 && calculatedAge <= 65 ? '• Eligible' : '• Ineligible'}
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="date"
                       required
                       value={dateOfBirth}
                       onChange={(e) => setDateOfBirth(e.target.value)}
-                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
+                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer min-h-[44px]"
                     />
                   </div>
 
@@ -528,35 +552,38 @@ function DonorRegistrationContent() {
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                       Primary Location / Area *
                     </label>
-                    <select
-                      value={locationId}
-                      onChange={(e) => setLocationId(Number(e.target.value))}
-                      className="w-full px-4 py-3 text-sm font-medium text-slate-900 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer"
-                    >
-                      {locations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.name}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <select
+                        value={locationId}
+                        onChange={(e) => setLocationId(Number(e.target.value))}
+                        className="w-full pl-10 pr-4 py-3 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden cursor-pointer min-h-[44px]"
+                      >
+                        {locations.map((loc) => (
+                          <option key={loc.id} value={loc.id}>
+                            {loc.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 {/* Availability Switch */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-3">
                   <div>
                     <span className="block text-xs font-bold text-slate-900">
-                      Set Available for Requests Now
+                      Available for Emergency Blood Requests Now
                     </span>
                     <span className="text-[11px] text-slate-500">
-                      You can change this anytime from your Donor Hub.
+                      You can toggle your availability anytime from your Donor Hub.
                     </span>
                   </div>
                   <input
                     type="checkbox"
                     checked={isAvailable}
                     onChange={(e) => setIsAvailable(e.target.checked)}
-                    className="w-5 h-5 accent-red-600 rounded cursor-pointer"
+                    className="w-5 h-5 accent-red-600 rounded cursor-pointer shrink-0"
                   />
                 </div>
 
@@ -567,10 +594,10 @@ function DonorRegistrationContent() {
                       type="checkbox"
                       checked={agreeDisclaimer}
                       onChange={(e) => setAgreeDisclaimer(e.target.checked)}
-                      className="w-4 h-4 accent-red-600 rounded mt-0.5"
+                      className="w-4 h-4 accent-red-600 rounded mt-0.5 shrink-0"
                     />
-                    <span className="text-xs text-amber-900 leading-relaxed">
-                      I confirm that I am donating voluntarily, meet the minimum age of 18, and understand that Blood Connect is <strong>not a blood bank</strong>. All medical and blood compatibility tests will be verified by certified hospital personnel.
+                    <span className="text-xs text-amber-950 leading-relaxed font-medium">
+                      I confirm that I am registering voluntarily, am between 18 and 65 years old, and understand that Blood Connect is <strong>not a blood bank</strong>. All medical compatibility tests will be verified by certified hospital doctors.
                     </span>
                   </label>
                 </div>
@@ -578,24 +605,24 @@ function DonorRegistrationContent() {
                 <button
                   type="submit"
                   disabled={isLoading || !fullName || !agreeDisclaimer}
-                  className="w-full py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-300 text-white font-bold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed min-h-[48px]"
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Creating Donor Profile...
+                      <span>Creating Donor Profile...</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      Complete Donor Registration
+                      <span>Complete Voluntary Registration</span>
                     </>
                   )}
                 </button>
               </form>
             )}
 
-            {/* STEP 4: REGISTRATION SUCCESSFUL (From PDF Spec Page 6) */}
+            {/* STEP 4: REGISTRATION SUCCESSFUL */}
             {step === 4 && (
               <div className="py-8 text-center space-y-6 animate-in fade-in">
                 <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-md shadow-emerald-500/10">
@@ -604,23 +631,23 @@ function DonorRegistrationContent() {
 
                 <div className="space-y-2">
                   <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
-                    Registration Successful!
+                    Welcome to the Lifesaver Network!
                   </h2>
-                  <p className="text-base text-red-600 font-semibold italic">
-                    "Your willingness to help today could be someones hope tomorrow."
+                  <p className="text-base text-red-600 font-bold italic">
+                    "Your willingness to help today could be someone's hope tomorrow."
                   </p>
                 </div>
 
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
-                  Your donor details have been securely recorded in the Blood Connect database. You will only be contacted when someone in your region urgently requires your blood group.
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600 leading-relaxed max-w-md mx-auto font-medium">
+                  Your voluntary profile ({bloodGroup}) has been securely recorded in the Blood Connect network. You will only be alerted when someone nearby has an emergency requirement matching your blood group.
                 </div>
 
                 <div className="pt-2">
                   <button
                     onClick={() => router.push('/donor/dashboard')}
-                    className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-sm rounded-2xl shadow-lg shadow-red-600/25 transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-8 py-4 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-bold text-sm rounded-2xl shadow-lg shadow-red-600/25 transition-all inline-flex items-center justify-center gap-2 cursor-pointer min-h-[48px]"
                   >
-                    <span>Proceed to Donor Hub</span>
+                    <span>Go to Donor Hub</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -629,7 +656,7 @@ function DonorRegistrationContent() {
           </div>
         </div>
 
-        {/* Safety Banner */}
+        {/* Safety Disclaimer Card */}
         <div className="mt-8">
           <MedicalDisclaimer variant="card" />
         </div>

@@ -395,7 +395,7 @@ export default function RequesterDashboardPage() {
                 <div className="space-y-1">
                   <h3 className="text-lg font-black text-slate-900">No requests sent yet</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Search registered blood donors in Coimbatore and send a request when blood is needed.
+                    Search verified voluntary blood donors in your area and send a request when blood is needed.
                   </p>
                 </div>
                 <Link
@@ -835,7 +835,7 @@ export default function RequesterDashboardPage() {
                     </div>
                     <div className="text-slate-600 font-medium flex items-center gap-1 text-[11px]">
                       <MapPin className="w-3 h-3 text-slate-400" />
-                      <span>{selectedRequest.location?.name || selectedRequest.donor?.location?.name || 'Coimbatore'}</span>
+                      <span>{selectedRequest.location?.name || selectedRequest.donor?.location?.name || 'Local Area'}</span>
                     </div>
                   </div>
 

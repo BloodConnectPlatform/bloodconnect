@@ -188,9 +188,9 @@ export const Navbar: React.FC = () => {
                 </Link>
 
                 <button
-                  onClick={() => redirectToWhatsAppLogin('LOGIN')}
+                  onClick={openLoginModal}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                  title="Fast WhatsApp Login"
+                  title="Fast WhatsApp & Mobile Sign In"
                 >
                   <MessageCircle className="w-4 h-4" />
                   <span>Sign In</span>
@@ -312,12 +312,12 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  redirectToWhatsAppLogin('LOGIN');
+                  openLoginModal();
                 }}
-                className="w-full py-3 px-4 text-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 text-center font-bold text-sm bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl shadow-xs cursor-pointer flex items-center justify-center gap-2"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>Sign In via WhatsApp</span>
+                <span>Sign In (WhatsApp / Mobile OTP)</span>
               </button>
             </div>
           )}

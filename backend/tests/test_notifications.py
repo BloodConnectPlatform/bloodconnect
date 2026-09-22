@@ -152,10 +152,12 @@ async def test_send_request_lifecycle_notifications(db_session: AsyncSession):
     r2 = await notification_service.send_request_rejected(
         requester_mobile="9876543214",
         blood_group="A+",
+        donor_name="Donor Dave",
         request_id=req_id,
         db=db_session
     )
     assert r2.success is True
+    assert "Donor Dave" in default_mock_whatsapp_provider.sent_messages[-1]["text"]
 
     # 3. Cancelled
     r3 = await notification_service.send_request_cancelled(

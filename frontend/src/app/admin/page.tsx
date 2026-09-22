@@ -634,7 +634,7 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* Stats Grid & Blood Group Breakdown (From PDF Spec Page 13) */}
+        {/* Stats Grid & Platform Overview */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
             <div className="flex items-center justify-between mb-2">
@@ -695,7 +695,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Blood Groups Distribution Widget (From PDF Spec Page 13 Example) */}
+        {/* Blood Groups Distribution Widget */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
@@ -722,10 +722,10 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto no-scrollbar scroll-smooth">
           <button
             onClick={() => setActiveTab('DONORS')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'DONORS'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -737,7 +737,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('REQUESTS')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'REQUESTS'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -749,7 +749,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('REPORTS')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'REPORTS'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -766,7 +766,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('AUDIT')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'AUDIT'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -778,7 +778,7 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('ADMINS')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
               activeTab === 'ADMINS'
                 ? 'bg-purple-700 text-white shadow-xs'
                 : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -1112,7 +1112,7 @@ export default function AdminDashboardPage() {
               <p className="text-xs text-slate-500 mb-4">
                 Enter the registered 10-digit mobile number of an existing user to grant them administrative privileges.
               </p>
-              <form onSubmit={handlePromoteAdmin} className="flex flex-col sm:flex-row items-center gap-3">
+              <form onSubmit={handlePromoteAdmin} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <div className="relative w-full sm:w-80">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-500">
                     +91
@@ -1124,13 +1124,13 @@ export default function AdminDashboardPage() {
                     value={promoteMobile}
                     onChange={(e) => setPromoteMobile(e.target.value.replace(/\D/g, ''))}
                     required
-                    className="w-full pl-14 pr-4 py-2.5 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
+                    className="w-full pl-14 pr-4 py-2.5 min-h-[44px] text-xs text-slate-900 bg-white border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-purple-600 outline-hidden placeholder:text-slate-400 font-mono"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isPromoting || promoteMobile.length < 10}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] bg-purple-700 hover:bg-purple-800 disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isPromoting ? (
                     <>
