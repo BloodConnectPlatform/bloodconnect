@@ -658,6 +658,33 @@ class NotificationService:
         )
 
         async def _wa_send(provider: BaseWhatsAppProvider) -> ProviderSendResult:
+            template_name = settings.WHATSAPP_TEMPLATE_REQUEST_CANCELLED
+            if template_name and template_name.lower() == "hello_world":
+                return await provider.send_template(
+                    to_mobile=donor_mobile,
+                    template_name="hello_world",
+                    language_code="en",
+                    components=[]
+                )
+            elif template_name and template_name != "none" and isinstance(provider, MetaWhatsAppProvider):
+                # Template: The *{{1}}* blood request for patient *{{2}}* from *{{3}}* has been cancelled...
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": blood_group},
+                            {"type": "text", "text": patient_name or "Emergency Patient"},
+                            {"type": "text", "text": requester_name}
+                        ]
+                    }
+                ]
+                lang_code = settings.WHATSAPP_TEMPLATE_LANGUAGE or "en"
+                return await provider.send_template(
+                    to_mobile=donor_mobile,
+                    template_name=template_name,
+                    language_code=lang_code,
+                    components=components
+                )
             return await provider.send_text(to_mobile=donor_mobile, text=message)
 
         return await self._dispatch_with_fallback(
@@ -687,6 +714,33 @@ class NotificationService:
         )
 
         async def _wa_send(provider: BaseWhatsAppProvider) -> ProviderSendResult:
+            template_name = settings.WHATSAPP_TEMPLATE_REQUEST_REMINDER
+            if template_name and template_name.lower() == "hello_world":
+                return await provider.send_template(
+                    to_mobile=donor_mobile,
+                    template_name="hello_world",
+                    language_code="en",
+                    components=[]
+                )
+            elif template_name and template_name != "none" and isinstance(provider, MetaWhatsAppProvider):
+                # Template: You have an active pending {{1}} blood request for patient {{2}} in {{3}}...
+                components = [
+                    {
+                        "type": "body",
+                        "parameters": [
+                            {"type": "text", "text": blood_group},
+                            {"type": "text", "text": patient_name or "Emergency Patient"},
+                            {"type": "text", "text": location_name}
+                        ]
+                    }
+                ]
+                lang_code = settings.WHATSAPP_TEMPLATE_LANGUAGE or "en"
+                return await provider.send_template(
+                    to_mobile=donor_mobile,
+                    template_name=template_name,
+                    language_code=lang_code,
+                    components=components
+                )
             return await provider.send_text(to_mobile=donor_mobile, text=message)
 
         return await self._dispatch_with_fallback(

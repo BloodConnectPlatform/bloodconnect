@@ -81,11 +81,11 @@ async def run_diagnostic(recipient: str, template: str, language: str):
     print(f"  - Normalized (WhatsApp format):   {normalized} ({masked_recipient})")
     print(f"  - Template:                       {template} ({language})")
 
-    # 4. Dispatch Test via Meta Provider
-    print(f"\n[*] DISPATCHING TEMPLATE MESSAGE...")
-    components = None
-    if template in [settings.WHATSAPP_TEMPLATE_BLOOD_REQUEST, "bloodconnect_blood_request"]:
-        components = [
+TEMPLATES_CATALOG = {
+    "bloodconnect_blood_request": {
+        "description": "Urgent Blood Donation Request to Matching Donor",
+        "lang": "en",
+        "components": [
             {
                 "type": "body",
                 "parameters": [
@@ -108,10 +108,11 @@ async def run_diagnostic(recipient: str, template: str, language: str):
                 "parameters": [{"type": "payload", "payload": "REJECT:test"}]
             }
         ]
-    elif template in [settings.WHATSAPP_TEMPLATE_AUTH_OTP, "bloodconnect_auth_otp"]:
-        components = [{"type": "body", "parameters": [{"type": "text", "text": "123456"}]}]
-    elif template in [settings.WHATSAPP_TEMPLATE_REQUEST_ACCEPTED, "bloodconnect_request_accepted"]:
-        components = [
+    },
+    "bloodconnect_request_accepted": {
+        "description": "Donation Accepted Notification to Requester",
+        "lang": "en",
+        "components": [
             {
                 "type": "body",
                 "parameters": [
@@ -121,8 +122,11 @@ async def run_diagnostic(recipient: str, template: str, language: str):
                 ]
             }
         ]
-    elif template in [settings.WHATSAPP_TEMPLATE_REQUEST_REJECTED, "bloodconnect_request_rejected"]:
-        components = [
+    },
+    "bloodconnect_request_rejected": {
+        "description": "Donation Declined Notification to Requester",
+        "lang": "en",
+        "components": [
             {
                 "type": "body",
                 "parameters": [
@@ -131,39 +135,147 @@ async def run_diagnostic(recipient: str, template: str, language: str):
                 ]
             }
         ]
+    },
+    "bloodconnect_request_cancelled": {
+        "description": "Request Cancelled Notification to Donor",
+        "lang": "en",
+        "components": [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "B+"},
+                    {"type": "text", "text": "Ravi Kumar"},
+                    {"type": "text", "text": "Priya Sharma"}
+                ]
+            }
+        ]
+    },
+    "bloodconnect_request_reminder": {
+        "description": "Pending Request Reminder Notification to Donor",
+        "lang": "en",
+        "components": [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "O-"},
+                    {"type": "text", "text": "Kavitha"},
+                    {"type": "text", "text": "Coimbatore"}
+                ]
+            }
+        ]
+    },
+    "bloodconnect_auth_otp": {
+        "description": "Login/Registration Verification OTP",
+        "lang": "en",
+        "components": [
+            {
+                "type": "body",
+                "parameters": [
+                    {"type": "text", "text": "492815"}
+                ]
+            }
+        ]
+    },
+    "hello_world": {
+        "description": "Meta Hello World Sample Template",
+        "lang": "en_US",
+        "components": None
+    }
+}
 
-    provider = MetaWhatsAppProvider()
+
+async def execute_template_test(provider: MetaWhatsAppProvider, recipient: str, template: str, language: str) -> bool:
+    config = TEMPLATES_CATALOG.get(template, {})
+    components = config.get("components")
+    lang_code = language or config.get("lang") or settings.WHATSAPP_TEMPLATE_LANGUAGE or "en"
+    desc = config.get("description", "WhatsApp Template")
+
+    print(f"\n[*] Dispatching '{template}' ({desc})...")
     result = await provider.send_template(
         to_mobile=recipient,
         template_name=template,
-        language_code=language,
+        language_code=lang_code,
         components=components
     )
     if not result.success and components and len(components) > 1 and result.error_message and ("components" in result.error_message.lower() or "button" in result.error_message.lower()):
         retry_res = await provider.send_template(
             to_mobile=recipient,
             template_name=template,
-            language_code=language,
+            language_code=lang_code,
             components=[components[0]]
         )
         if retry_res.success:
             result = retry_res
 
-    print("\n" + "=" * 70)
-    print("  RESULT SUMMARY")
-    print("=" * 70)
     if result.success:
-        print(f"  [+] SUCCESS: Template message '{template}' accepted by Meta Cloud API!")
+        print(f"  [+] SUCCESS: Accepted by Meta Cloud API!")
         print(f"  [+] Message ID:  {result.provider_message_id}")
-        print(f"  [+] Provider:    {result.provider}")
-        if result.details:
-            print(f"  [+] Meta Details: {result.details}")
+        return True
     else:
-        print(f"  [-] FAILED: Meta Cloud API returned an error.")
-        print(f"  [-] Error Message: {result.error_message}")
+        print(f"  [-] FAILED: Meta API Error: {result.error_message}")
         if result.details:
             print(f"  [-] Details: {result.details}")
-        sys.exit(2)
+        return False
+
+
+async def run_diagnostic(recipient: str, template: str, language: str, test_all: bool = False):
+    print("=" * 70)
+    print("  BLOODCONNECT — WHATSAPP META CLOUD API DIAGNOSTIC TEST")
+    print("=" * 70)
+
+    # 1. Environment & Configuration Check
+    print("\n[*] CONFIGURATION AUDIT:")
+    print(f"  - ENVIRONMENT:                    {settings.ENVIRONMENT}")
+    print(f"  - NOTIFICATION_PROVIDER:          {settings.NOTIFICATION_PROVIDER}")
+    print(f"  - WHATSAPP_PROVIDER:              {settings.WHATSAPP_PROVIDER}")
+    print(f"  - DEFAULT_TEMPLATE_LANGUAGE:      {settings.WHATSAPP_TEMPLATE_LANGUAGE}")
+    print(f"  - META_GRAPH_API_VERSION:         {settings.META_GRAPH_API_VERSION}")
+    print(f"  - META_WA_PHONE_NUMBER_ID:        {mask_id(settings.META_WA_PHONE_NUMBER_ID)}")
+    print(f"  - META_WA_BUSINESS_ACCOUNT_ID:    {mask_id(settings.META_WA_BUSINESS_ACCOUNT_ID)}")
+    print(f"  - META_WA_ACCESS_TOKEN:           {mask_token(settings.META_WA_ACCESS_TOKEN)}")
+    print(f"  - WHATSAPP_WEBHOOK_VERIFY_TOKEN:  {mask_token(settings.WHATSAPP_WEBHOOK_VERIFY_TOKEN)}")
+
+    # 2. Validation
+    has_token = bool(settings.META_WA_ACCESS_TOKEN and settings.META_WA_ACCESS_TOKEN.strip())
+    has_phone = bool(settings.META_WA_PHONE_NUMBER_ID and settings.META_WA_PHONE_NUMBER_ID.strip())
+
+    if not has_token or not has_phone:
+        print("\n[!] ERROR: Missing required Meta Cloud API credentials in environment!")
+        sys.exit(1)
+
+    # 3. Recipient Normalization
+    normalized = normalize_recipient_mobile(recipient)
+    masked_recipient = f"+{normalized[:2]} {normalized[2:4]}******{normalized[-2:]}"
+    print(f"\n[*] TARGET RECIPIENT:")
+    print(f"  - Input Mobile:                   {recipient}")
+    print(f"  - Normalized (WhatsApp format):   {normalized} ({masked_recipient})")
+
+    provider = MetaWhatsAppProvider()
+
+    if test_all:
+        approved_templates = [
+            "bloodconnect_blood_request",
+            "bloodconnect_request_accepted",
+            "bloodconnect_request_rejected",
+            "bloodconnect_request_cancelled",
+            "bloodconnect_request_reminder",
+        ]
+        print(f"\n[*] Testing all {len(approved_templates)} core BloodConnect templates...")
+        results = {}
+        for t_name in approved_templates:
+            ok = await execute_template_test(provider, recipient, t_name, language)
+            results[t_name] = ok
+
+        print("\n" + "=" * 70)
+        print("  BATCH TEST SUMMARY")
+        print("=" * 70)
+        for t_name, ok in results.items():
+            status_str = "[PASS]" if ok else "[FAIL]"
+            print(f"  {status_str} {t_name}")
+    else:
+        ok = await execute_template_test(provider, recipient, template, language)
+        if not ok:
+            sys.exit(2)
 
 
 def main():
@@ -175,18 +287,24 @@ def main():
     )
     parser.add_argument(
         "--template",
-        default="hello_world",
-        help="Meta template name (default: hello_world)"
+        default="bloodconnect_blood_request",
+        help="Meta template name (default: bloodconnect_blood_request)"
     )
     parser.add_argument(
         "--lang",
-        default=settings.WHATSAPP_TEMPLATE_LANGUAGE or "en",
-        help="Template language code (default: from settings or en)"
+        default="",
+        help="Template language code (default: auto from catalog or config)"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Test all 5 approved BloodConnect templates in batch"
     )
 
     args = parser.parse_args()
-    asyncio.run(run_diagnostic(args.mobile, args.template, args.lang))
+    asyncio.run(run_diagnostic(args.mobile, args.template, args.lang, test_all=args.all))
 
 
 if __name__ == "__main__":
     main()
+
