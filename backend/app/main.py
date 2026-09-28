@@ -74,8 +74,13 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 app.include_router(webhooks_router)
 app.include_router(webhooks_router, prefix=settings.API_V1_PREFIX)
 
-# Top-level magic link alias: GET /auth/whatsapp
-from app.api.v1.auth import redeem_whatsapp_token_get, get_whatsapp_config
+# Top-level magic link alias: GET /auth/whatsapp and frontend redirects (/register, /login)
+from app.api.v1.auth import (
+    redeem_whatsapp_token_get,
+    get_whatsapp_config,
+    redirect_register_to_frontend,
+    redirect_login_to_frontend,
+)
 app.add_api_route(
     "/auth/whatsapp",
     redeem_whatsapp_token_get,
@@ -89,6 +94,20 @@ app.add_api_route(
     methods=["GET"],
     tags=["Authentication"],
     include_in_schema=True
+)
+app.add_api_route(
+    "/register",
+    redirect_register_to_frontend,
+    methods=["GET"],
+    tags=["Authentication"],
+    include_in_schema=False
+)
+app.add_api_route(
+    "/login",
+    redirect_login_to_frontend,
+    methods=["GET"],
+    tags=["Authentication"],
+    include_in_schema=False
 )
 
 # Top-level legal route aliases
