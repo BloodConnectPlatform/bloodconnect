@@ -98,14 +98,14 @@ app.add_api_route(
 app.add_api_route(
     "/register",
     redirect_register_to_frontend,
-    methods=["GET"],
+    methods=["GET", "HEAD"],
     tags=["Authentication"],
     include_in_schema=False
 )
 app.add_api_route(
     "/login",
     redirect_login_to_frontend,
-    methods=["GET"],
+    methods=["GET", "HEAD"],
     tags=["Authentication"],
     include_in_schema=False
 )
