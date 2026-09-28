@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -195,6 +195,8 @@ async def redeem_whatsapp_token_get(
     accept_header = request.headers.get("accept", "")
     is_browser_request = "text/html" in accept_header or not ("application/json" in accept_header)
 
+    frontend_base = whatsapp_auth_service._resolve_public_base_url(request)
+
     try:
         token_response, user = await whatsapp_auth_service.redeem_whatsapp_login_token(
             db=db,
@@ -232,7 +234,7 @@ async def redeem_whatsapp_token_get(
       <div class="icon">&#9888;</div>
       <h1>Login Link Invalid or Expired</h1>
       <p>This login link is invalid or has expired. Please request a new login link through WhatsApp.</p>
-      <a href="/" class="btn">Return to Home</a>
+      <a href="{frontend_base}/" class="btn">Return to Home</a>
     </div>
   </div>
 </body>
@@ -248,8 +250,6 @@ async def redeem_whatsapp_token_get(
         target_path = "/admin"
     elif user.role == UserRole.DONOR:
         target_path = "/donor/dashboard"
-
-    frontend_base = (settings.FRONTEND_URL or "http://localhost:3000").rstrip("/")
 
     # Check if backend and frontend are on the same origin
     import urllib.parse
@@ -378,4 +378,25 @@ async def get_whatsapp_config():
         "whatsapp_phone_number": phone,
         "login_url": f"https://wa.me/{phone}?text=LOGIN"
     }
+
+
+async def redirect_register_to_frontend(request: Request):
+    """Redirect GET /register requests on the API domain to the Next.js frontend /register page with all query parameters."""
+    frontend_base = whatsapp_auth_service._resolve_public_base_url(request)
+    query_string = request.url.query
+    target_url = f"{frontend_base}/register"
+    if query_string:
+        target_url = f"{target_url}?{query_string}"
+    return RedirectResponse(url=target_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
+
+async def redirect_login_to_frontend(request: Request):
+    """Redirect GET /login requests on the API domain to the Next.js frontend /login page with all query parameters."""
+    frontend_base = whatsapp_auth_service._resolve_public_base_url(request)
+    query_string = request.url.query
+    target_url = f"{frontend_base}/login"
+    if query_string:
+        target_url = f"{target_url}?{query_string}"
+    return RedirectResponse(url=target_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
 

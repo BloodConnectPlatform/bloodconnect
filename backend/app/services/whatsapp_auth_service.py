@@ -63,24 +63,71 @@ class WhatsAppAuthService:
         """Clear recorded IP rate limit timestamps (useful for tests)."""
         self._ip_redemption_attempts.clear()
 
+    @staticmethod
+    def _normalize_to_frontend_url(raw_url: str) -> str:
+        """
+        Ensure a candidate base URL points to the frontend web application rather than the backend API subdomain.
+        For example, converts 'https://api.bloodconnect.online' -> 'https://www.bloodconnect.online'.
+        """
+        import urllib.parse
+        cleaned = (raw_url or "").strip().rstrip("/")
+        if not cleaned:
+            return ""
+        parsed = urllib.parse.urlparse(cleaned)
+        if not parsed.scheme or not parsed.netloc:
+            return cleaned
+        host = parsed.netloc
+        if host.startswith("api."):
+            host = "www." + host[4:]
+            return urllib.parse.urlunparse((parsed.scheme, host, parsed.path, "", "", "")).rstrip("/")
+        return cleaned
+
     def _resolve_public_base_url(self, request: Optional[Request] = None) -> str:
         """
-        Determine the public base URL for links sent in WhatsApp.
-        Prioritizes explicit config, then incoming tunnel/proxy headers, then FRONTEND_URL.
+        Determine the public frontend base URL for links sent in WhatsApp.
+        Automatically normalizes 'api.<domain>' to 'www.<domain>' so user-facing links
+        (/register, /auth/whatsapp) always land on the Next.js frontend rather than the FastAPI backend.
         """
-        if settings.WHATSAPP_MAGIC_LINK_BASE_URL and settings.WHATSAPP_MAGIC_LINK_BASE_URL.strip():
-            return settings.WHATSAPP_MAGIC_LINK_BASE_URL.strip().rstrip("/")
+        # 1. Explicit non-localhost FRONTEND_URL
         if settings.FRONTEND_URL and "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL:
-            return settings.FRONTEND_URL.strip().rstrip("/")
+            return self._normalize_to_frontend_url(settings.FRONTEND_URL)
+
+        # 2. Explicit WHATSAPP_MAGIC_LINK_BASE_URL (normalized from api.* to www.*)
+        if settings.WHATSAPP_MAGIC_LINK_BASE_URL and settings.WHATSAPP_MAGIC_LINK_BASE_URL.strip():
+            candidate = self._normalize_to_frontend_url(settings.WHATSAPP_MAGIC_LINK_BASE_URL)
+            if "localhost" not in candidate and "127.0.0.1" not in candidate:
+                return candidate
+
+        # 3. Incoming request headers (e.g. Cloudflare / Render proxy headers)
         if request:
             forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
-            forwarded_proto = request.headers.get("x-forwarded-proto") or "https"
-            if forwarded_host and "localhost" not in forwarded_host and "127.0.0.1" not in forwarded_host:
+            forwarded_proto = (request.headers.get("x-forwarded-proto") or request.url.scheme or "https").split(",")[0].strip()
+            if (
+                forwarded_host
+                and "localhost" not in forwarded_host
+                and "127.0.0.1" not in forwarded_host
+                and "testserver" not in forwarded_host
+            ):
                 host_val = forwarded_host.split(",")[0].strip()
                 if host_val.startswith("api."):
                     host_val = "www." + host_val[4:]
-                return f"{forwarded_proto}://{host_val}".rstrip("/")
-        return (settings.FRONTEND_URL or settings.PUBLIC_API_URL or "http://localhost:3000").rstrip("/")
+                if not host_val.endswith(".onrender.com"):
+                    return f"{forwarded_proto}://{host_val}".rstrip("/")
+
+        # 4. Non-localhost PUBLIC_API_URL (normalized from api.* to www.*)
+        if settings.PUBLIC_API_URL and "localhost" not in settings.PUBLIC_API_URL and "127.0.0.1" not in settings.PUBLIC_API_URL:
+            candidate = self._normalize_to_frontend_url(settings.PUBLIC_API_URL)
+            if not candidate.endswith(".onrender.com"):
+                return candidate
+
+        # 5. Production safety fallback
+        if settings.is_production:
+            return "https://www.bloodconnect.online"
+
+        # 6. Local development / test fallback
+        if settings.WHATSAPP_MAGIC_LINK_BASE_URL and settings.WHATSAPP_MAGIC_LINK_BASE_URL.strip():
+            return self._normalize_to_frontend_url(settings.WHATSAPP_MAGIC_LINK_BASE_URL)
+        return self._normalize_to_frontend_url(settings.FRONTEND_URL or settings.PUBLIC_API_URL or "http://localhost:3000")
 
     async def handle_login_request(
         self,

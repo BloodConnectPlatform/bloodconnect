@@ -604,3 +604,61 @@ async def test_whatsapp_login_initial_admin_auto_provisioned(
     assert user.is_active is True
 
 
+# -----------------------------------------------------------------------------
+# 15. Production URL Normalization (api.bloodconnect.online -> www.bloodconnect.online)
+# -----------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_whatsapp_register_normalizes_api_subdomain_to_frontend(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch
+):
+    """Test that even if WHATSAPP_MAGIC_LINK_BASE_URL or PUBLIC_API_URL is set to api.bloodconnect.online,
+    the registration magic link points to www.bloodconnect.online/register."""
+    monkeypatch.setattr(settings, "WHATSAPP_MAGIC_LINK_BASE_URL", "https://api.bloodconnect.online")
+    monkeypatch.setattr(settings, "FRONTEND_URL", "http://localhost:3000")
+
+    unregistered_phone = "9888777666"
+    payload = create_whatsapp_webhook_payload(
+        mobile=unregistered_phone,
+        text="REGISTER",
+        msg_id="wamid.reg.norm.001"
+    )
+    res = await client.post("/webhooks/whatsapp", json=payload)
+    assert res.status_code == 200
+
+    sent = default_mock_whatsapp_provider.sent_messages
+    assert len(sent) == 1
+    msg_text = sent[0]["text"]
+    assert "https://www.bloodconnect.online/register?mobile=9888777666&token=" in msg_text
+    assert "https://api.bloodconnect.online/register" not in msg_text
+
+
+# -----------------------------------------------------------------------------
+# 16. Backend GET /register and GET /login Redirects to Frontend
+# -----------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_backend_register_and_login_routes_redirect_to_frontend(
+    client: AsyncClient,
+    monkeypatch
+):
+    """Test that hitting GET /register or GET /login on the API domain redirects to the frontend web app."""
+    monkeypatch.setattr(settings, "WHATSAPP_MAGIC_LINK_BASE_URL", "https://api.bloodconnect.online")
+    monkeypatch.setattr(settings, "FRONTEND_URL", "http://localhost:3000")
+
+    res_reg = await client.get(
+        "/register?mobile=9843883304&token=sample_jwt_token",
+        follow_redirects=False
+    )
+    assert res_reg.status_code == 307
+    assert res_reg.headers["location"] == "https://www.bloodconnect.online/register?mobile=9843883304&token=sample_jwt_token"
+
+    res_login = await client.get(
+        "/login",
+        follow_redirects=False
+    )
+    assert res_login.status_code == 307
+    assert res_login.headers["location"] == "https://www.bloodconnect.online/login"
+
+
+
