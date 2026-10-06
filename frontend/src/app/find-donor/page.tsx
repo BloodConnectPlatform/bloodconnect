@@ -45,7 +45,7 @@ interface LastPatientDetails {
 function FindDonorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated, authenticateRequester } = useAuth();
+  const { user, isAuthenticated } = useAuth();
 
   const [locations, setLocations] = useState<LocationItem[]>(DEFAULT_LOCATIONS);
   const [selectedGroup, setSelectedGroup] = useState<BloodGroup | ''>(
@@ -64,11 +64,8 @@ function FindDonorContent() {
 
   // Request Modal State
   const [requestModalDonor, setRequestModalDonor] = useState<PublicDonor | null>(null);
-  const [requestStep, setRequestStep] = useState<'FORM' | 'OTP' | 'SUCCESS'>('FORM');
-  const [requesterName, setRequesterName] = useState('');
-  const [requesterMobile, setRequesterMobile] = useState('');
-  const [requesterOtp, setRequesterOtp] = useState('');
-  const [otpCooldown, setOtpCooldown] = useState(0);
+  const [requestStep, setRequestStep] = useState<'FORM' | 'SUCCESS'>('FORM');
+  const [restoredNotice, setRestoredNotice] = useState(false);
 
   const [lastPatientDetails, setLastPatientDetails] = useState<LastPatientDetails | null>(null);
   const [patientName, setPatientName] = useState('');
@@ -79,6 +76,32 @@ function FindDonorContent() {
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
 
+  // Automatically restore pending blood request after returning from login
+  useEffect(() => {
+    if (isAuthenticated && typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('bloodconnect_pending_request');
+        if (saved) {
+          const pending = JSON.parse(saved);
+          if (pending && pending.donor) {
+            setRequestModalDonor(pending.donor);
+            setPatientName(pending.patient_name || '');
+            setHospitalName(pending.hospital_name || '');
+            setRequiredUnits(pending.required_units || 1);
+            setUrgency(pending.urgency || 'HIGH');
+            setMessage(pending.message || '');
+            setRequestStep('FORM');
+            setRequestError(null);
+            setRestoredNotice(true);
+            localStorage.removeItem('bloodconnect_pending_request');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to restore pending request:', err);
+      }
+    }
+  }, [isAuthenticated]);
+
   // Report Modal State
   const [reportModalDonor, setReportModalDonor] = useState<PublicDonor | null>(null);
   const [reportReason, setReportReason] = useState<ReportReason>('INCORRECT_INFORMATION');
@@ -86,15 +109,6 @@ function FindDonorContent() {
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
   const [reportSuccess, setReportSuccess] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
-
-  // Cooldown timer
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (otpCooldown > 0) {
-      timer = setTimeout(() => setOtpCooldown((prev) => prev - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [otpCooldown]);
 
   // Fetch Locations
   useEffect(() => {
@@ -158,14 +172,7 @@ function FindDonorContent() {
     setRequestModalDonor(donor);
     setRequestStep('FORM');
     setRequestError(null);
-    if (user) {
-      setRequesterName(user.name || '');
-      setRequesterMobile(user.mobile || user.mobile_number || '');
-    } else {
-      setRequesterName('');
-      setRequesterMobile('');
-      setRequesterOtp('');
-    }
+    setRestoredNotice(false);
 
     // Check last patient details from localStorage for 1-click multiple donor requests
     let savedPatient: LastPatientDetails | null = null;
@@ -225,36 +232,6 @@ function FindDonorContent() {
     return null;
   };
 
-  const handleSendRequesterOtp = async () => {
-    const formatted = normalizePhone(requesterMobile);
-    if (!/^\+91[6-9]\d{9}$/.test(formatted)) {
-      setRequestError('Please enter a valid 10-digit Indian mobile number.');
-      return;
-    }
-    if (!requesterName.trim()) {
-      setRequestError('Please enter your full name as requester.');
-      return;
-    }
-
-    // Always preserve patient details
-    savePatientDetailsToStorage();
-
-    setIsSubmittingRequest(true);
-    setRequestError(null);
-    try {
-      const res = await api.sendOtp(formatted, 'REQUESTER_VERIFICATION');
-      setRequestStep('OTP');
-      setOtpCooldown(res.cooldown_seconds || 60);
-      if (res.debug_otp) {
-        setRequesterOtp(res.debug_otp);
-      }
-    } catch (err: any) {
-      setRequestError(err.message || 'Failed to send OTP. Please try again.');
-    } finally {
-      setIsSubmittingRequest(false);
-    }
-  };
-
   const handleSubmitRequestForm = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requestModalDonor) return;
@@ -269,12 +246,26 @@ function FindDonorContent() {
       return;
     }
 
-    // Immediately persist patient details so details remain saved even on failed request
+    // Immediately persist patient details for autofill convenience
     savePatientDetailsToStorage();
 
-    // If unauthenticated: send OTP first to verify requester identity
+    // If unauthenticated: save pending request draft and redirect to login page
     if (!isAuthenticated) {
-      await handleSendRequesterOtp();
+      const pendingData = {
+        donor: requestModalDonor,
+        patient_name: patientName.trim(),
+        hospital_name: hospitalName.trim(),
+        required_units: Number(requiredUnits) || 1,
+        urgency,
+        message: message.trim(),
+        saved_at: new Date().toISOString(),
+      };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bloodconnect_pending_request', JSON.stringify(pendingData));
+        } catch {}
+      }
+      router.push('/login?redirect=/find-donor');
       return;
     }
 
@@ -295,45 +286,6 @@ function FindDonorContent() {
       setRequestStep('SUCCESS');
     } catch (err: any) {
       setRequestError(err.message || 'Failed to send request. Please try again.');
-    } finally {
-      setIsSubmittingRequest(false);
-    }
-  };
-
-  const handleVerifyOtpAndDispatch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!requestModalDonor) return;
-    if (requesterOtp.trim().length !== 6) {
-      setRequestError('Please enter the 6-digit OTP code.');
-      return;
-    }
-
-    // Immediately persist patient details
-    savePatientDetailsToStorage();
-
-    setIsSubmittingRequest(true);
-    setRequestError(null);
-
-    try {
-      const formatted = normalizePhone(requesterMobile);
-      // 1. Authenticate / Sign Up as Requester with Name & Mobile
-      await authenticateRequester(requesterName.trim(), formatted, requesterOtp.trim());
-
-      // 2. Dispatch the Blood Request to Donor
-      await api.createRequest({
-        donor_id: requestModalDonor.id,
-        patient_name: patientName.trim(),
-        hospital_name: hospitalName.trim(),
-        required_units: Number(requiredUnits),
-        urgency,
-        message: message.trim() || undefined,
-        blood_group: requestModalDonor.blood_group,
-        location_id: requestModalDonor.location?.id,
-      });
-
-      setRequestStep('SUCCESS');
-    } catch (err: any) {
-      setRequestError(err.message || 'Failed to verify and send request.');
     } finally {
       setIsSubmittingRequest(false);
     }
@@ -749,77 +701,6 @@ function FindDonorContent() {
                     </button>
                   </div>
                 </div>
-              ) : requestStep === 'OTP' ? (
-                <form onSubmit={handleVerifyOtpAndDispatch} className="space-y-5 py-2">
-                  <div className="text-center space-y-1">
-                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                      <KeyRound className="w-6 h-6" />
-                    </div>
-                    <h4 className="text-base font-bold text-slate-900">Verify Requester Mobile</h4>
-                    <p className="text-xs text-slate-500">
-                      Enter the 6-digit code sent to <strong>{requesterMobile}</strong> to send your blood request to {requestModalDonor.full_name}.
-                    </p>
-                  </div>
-
-                  {requestError && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span>{requestError}</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="• • • • • •"
-                      value={requesterOtp}
-                      onChange={(e) => setRequesterOtp(e.target.value.replace(/\D/g, ''))}
-                      required
-                      autoFocus
-                      className="w-full text-center tracking-[0.5em] text-2xl font-bold py-3 border border-slate-300 rounded-xl font-mono text-slate-900 focus:ring-2 focus:ring-red-500 outline-hidden"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setRequestStep('FORM')}
-                      className="text-slate-500 hover:text-slate-800 font-medium flex items-center gap-1"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" /> Back to Edit Details
-                    </button>
-                    {otpCooldown > 0 ? (
-                      <span className="text-slate-400">Resend in {otpCooldown}s</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSendRequesterOtp}
-                        className="text-red-600 font-bold hover:underline"
-                      >
-                        Resend OTP
-                      </button>
-                    )}
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmittingRequest || requesterOtp.length !== 6}
-                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 active:bg-red-800 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {isSubmittingRequest ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Verifying & Sending Request...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        <span>Confirm & Send Blood Request</span>
-                      </>
-                    )}
-                  </button>
-                </form>
               ) : (
                 <form onSubmit={handleSubmitRequestForm} className="space-y-4">
                   {requestError && (
@@ -829,52 +710,51 @@ function FindDonorContent() {
                     </div>
                   )}
 
-                  {/* Requester Contact Details (If unauthenticated) */}
-                  {!isAuthenticated && (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
-                        <UserIcon className="w-4 h-4 text-red-600" />
-                        <span>Your Contact Details</span>
+                  {/* Restored from Login Success Banner */}
+                  {restoredNotice && isAuthenticated && (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-2.5 text-xs text-emerald-800 animate-in fade-in">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>
+                          Welcome back, <strong>{user?.name}</strong>! Your request details have been restored. Review and click below to send.
+                        </span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setRestoredNotice(false)}
+                        className="text-emerald-500 hover:text-emerald-700 p-0.5 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
-                            Your Full Name *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Anand Kumar"
-                            value={requesterName}
-                            onChange={(e) => setRequesterName(e.target.value)}
-                            className="w-full px-3.5 py-2.5 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-medium placeholder:text-slate-400 min-h-[42px]"
-                          />
+                  {/* Authenticated Requester Info Banner */}
+                  {isAuthenticated ? (
+                    <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                          <UserIcon className="w-4 h-4" />
                         </div>
-
                         <div>
-                          <label className="block text-xs font-bold text-slate-700 mb-1">
-                            Your Mobile Number *
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
-                              +91
-                            </span>
-                            <input
-                              type="tel"
-                              maxLength={10}
-                              required
-                              placeholder="9876543210"
-                              value={requesterMobile.replace(/^\+91/, '')}
-                              onChange={(e) => setRequesterMobile(e.target.value.replace(/\D/g, ''))}
-                              className="w-full pl-10 pr-3 py-2.5 text-xs text-slate-900 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-500 outline-hidden font-bold placeholder:text-slate-400 min-h-[42px]"
-                            />
-                          </div>
+                          <span className="block font-bold text-slate-900">{user?.name}</span>
+                          <span className="block text-[11px] text-slate-500">{user?.mobile || user?.mobile_number}</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-slate-500 font-medium">
-                        A quick 6-digit SMS passcode verifies your number so the donor can contact you.
-                      </p>
+                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-full">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Verified Account</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl flex items-start gap-3 text-xs text-amber-900">
+                      <Shield className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold">Sign in required to request donor contact</span>
+                        <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">
+                          Fill in the patient requirement below and click Continue. Your details will be preserved and you will return right here to dispatch your blood request with 1 tap.
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -1034,11 +914,14 @@ function FindDonorContent() {
                         </>
                       ) : !isAuthenticated ? (
                         <>
-                          <span>Verify Phone & Send Request</span>
+                          <span>Continue to Sign In</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </>
                       ) : (
-                        'Send Blood Request'
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Send Blood Request</span>
+                        </>
                       )}
                     </button>
                   </div>

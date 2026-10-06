@@ -35,6 +35,11 @@ function WhatsAppAuthHandler() {
 
         if (isMounted) {
           setStatusState('SUCCESS');
+          const hasPending = typeof window !== 'undefined' && localStorage.getItem('bloodconnect_pending_request');
+          if (hasPending) {
+            router.replace('/find-donor');
+            return;
+          }
           const role = authData.user.role;
           if (role === 'ADMIN') {
             router.replace('/admin');

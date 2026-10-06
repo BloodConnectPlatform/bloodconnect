@@ -116,7 +116,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       if (onSuccess) {
         onSuccess();
       } else {
-        if (user.role === 'ADMIN') {
+        const hasPending = typeof window !== 'undefined' && localStorage.getItem('bloodconnect_pending_request');
+        if (hasPending) {
+          router.push('/find-donor');
+        } else if (user.role === 'ADMIN') {
           router.push('/admin');
         } else if (user.role === 'DONOR') {
           router.push('/donor/dashboard');
