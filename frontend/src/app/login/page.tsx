@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -15,12 +15,15 @@ import {
   ArrowRight,
   User as UserIcon,
   MessageCircle,
+  Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
 import { redirectToWhatsAppLogin } from '@/lib/whatsapp';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
   const { isAuthenticated, user, login, authenticateRequester } = useAuth();
 
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
@@ -30,14 +33,42 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  const [pendingRequest, setPendingRequest] = useState<any>(null);
+
+  // Check for pre-filled query params and pending request from find-donor flow
+  useEffect(() => {
+    const mobileParam = searchParams.get('mobile');
+    const nameParam = searchParams.get('name');
+    if (mobileParam) setMobileNumber(mobileParam);
+    if (nameParam) setFullName(nameParam);
+
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('bloodconnect_pending_request');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.donor) {
+            setPendingRequest(parsed);
+          }
+        }
+      } catch {}
+    }
+  }, [searchParams]);
+
+  const getRedirectTarget = (role?: string) => {
+    const hasPending = typeof window !== 'undefined' && localStorage.getItem('bloodconnect_pending_request');
+    if (redirectParam) return redirectParam;
+    if (hasPending) return '/find-donor';
+    if (role === 'ADMIN') return '/admin';
+    if (role === 'DONOR') return '/donor/dashboard';
+    return '/requester/dashboard';
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
-      if (user?.role === 'ADMIN') router.push('/admin');
-      else if (user?.role === 'DONOR') router.push('/donor/dashboard');
-      else router.push('/requester/dashboard');
+      router.replace(getRedirectTarget(user?.role));
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, router, redirectParam]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -98,13 +129,7 @@ export default function LoginPage() {
       } else {
         loggedUser = await login(formatted, otpCode.trim());
       }
-      if (loggedUser.role === 'ADMIN') {
-        router.push('/admin');
-      } else if (loggedUser.role === 'DONOR') {
-        router.push('/donor/dashboard');
-      } else {
-        router.push('/requester/dashboard');
-      }
+      router.replace(getRedirectTarget(loggedUser.role));
     } catch (err: any) {
       setError(err.message || 'Invalid or expired OTP.');
     } finally {
@@ -143,6 +168,25 @@ export default function LoginPage() {
             <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-2.5 text-xs text-red-700 font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {pendingRequest && (
+            <div className="p-4 bg-rose-50 border-2 border-rose-200 rounded-2xl flex items-start gap-3 text-xs text-rose-900 animate-in fade-in">
+              <Heart className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 fill-rose-600" />
+              <div className="space-y-1">
+                <div className="font-bold text-rose-950 text-sm">
+                  Blood Request Saved & Ready
+                </div>
+                <p className="text-rose-800 leading-relaxed">
+                  Requesting <strong>{pendingRequest.required_units || 1} unit(s)</strong> from donor{' '}
+                  <strong>{pendingRequest.donor?.full_name} ({pendingRequest.donor?.blood_group})</strong> for{' '}
+                  <strong>{pendingRequest.patient_name || 'Patient'}</strong> at {pendingRequest.hospital_name}.
+                </p>
+                <p className="text-[11px] text-rose-700 font-medium">
+                  Sign in below to automatically return and send your request with 1 tap.
+                </p>
+              </div>
             </div>
           )}
 
@@ -315,5 +359,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 bg-slate-50 flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-red-600" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

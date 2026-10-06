@@ -53,8 +53,9 @@ export default function WhatsAppCallbackPage() {
         if (isMounted) {
           setStatusState('SUCCESS');
 
-          // Redirect to the appropriate dashboard
-          const targetPath = redirect || '/';
+          // Redirect to find-donor if pending request exists, otherwise to redirect or home
+          const hasPending = typeof window !== 'undefined' && localStorage.getItem('bloodconnect_pending_request');
+          const targetPath = hasPending ? '/find-donor' : (redirect || '/');
           router.replace(targetPath);
         }
       } catch (err: any) {
